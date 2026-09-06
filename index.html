@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -1863,85 +1863,54 @@ function validateSlideVideoTimes() {
 }
 
 /* ============================================================
-   4. EASING CURVE & NON-BLOCKING SEEK SCHEDULER
+   4. EASING CURVE & RESILIENT VIDEO CONTROLLER
 ============================================================ */
-// Smooth cinematic cubic acceleration & deceleration
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-// Discards old intermediate requests; only the latest target matters
-function scheduleSeek() {
-  if (video.readyState < 2) return; // HAVE_CURRENT_DATA or higher
+let videoSeekTimer = null;
 
-  // If a seek is currently in flight in the browser decoder, do NOT flood it!
-  if (seekInProgress || video.seeking) {
-    // Watchdog fallback: in case decoder seeked event is delayed (> 200ms)
-    if (performance.now() - lastSeekTimestamp > 200) {
-      seekInProgress = false;
-    } else {
-      return; // Old intermediate requests are discarded cleanly
-    }
-  }
+function seekVideoTo(targetTime, dir = 1) {
+  if (!video) return;
 
-  // Only issue a seek if the timestamp delta is visually meaningful (>= 20ms)
-  const diff = Math.abs(requestedTime - video.currentTime);
-  if (diff >= 0.02) {
-    seekInProgress = true;
-    lastSeekTimestamp = performance.now();
+  targetVideoTime = targetTime;
+
+  if (video.readyState >= 1) {
     try {
-      video.currentTime = requestedTime;
-      currentVideoTime = requestedTime;
-    } catch (e) {
-      seekInProgress = false;
-    }
-  }
-}
+      const cur = video.currentTime;
+      const target = Math.max(0, Math.min(targetTime, (video.duration && !isNaN(video.duration)) ? video.duration : 9.0));
 
-// When browser decoder finishes seeking the frame:
-video.addEventListener('seeked', () => {
-  seekInProgress = false;
-  currentVideoTime = video.currentTime;
+      // If moving forward by a short delta, let the browser play forward smoothly
+      if (dir > 0 && target > cur && (target - cur) <= 2.5) {
+        video.playbackRate = 1.6;
+        video.play().catch(() => {});
 
-  // If the target moved during the previous seek, immediately service the latest requested target:
-  if (isTransitioning) {
-    const diff = Math.abs(requestedTime - video.currentTime);
-    if (diff >= 0.02) {
-      seekInProgress = true;
-      lastSeekTimestamp = performance.now();
-      try {
-        video.currentTime = requestedTime;
-        currentVideoTime = requestedTime;
-      } catch (e) {
-        seekInProgress = false;
+        clearTimeout(videoSeekTimer);
+        const checkArrival = () => {
+          if (video.currentTime >= target - 0.05 || video.paused) {
+            video.pause();
+            video.currentTime = target;
+            video.playbackRate = 1.0;
+          } else {
+            videoSeekTimer = setTimeout(checkArrival, 30);
+          }
+        };
+        videoSeekTimer = setTimeout(checkArrival, 30);
+      } else {
+        // Direct keyframe seek
+        video.pause();
+        video.currentTime = target;
       }
+    } catch (e) {
+      console.warn("Video seek error:", e);
     }
   }
-});
-
-// Hardware frame sync using requestVideoFrameCallback when available
-if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
-  const onVideoFramePresented = (now, metadata) => {
-    lastPresentedMediaTime = metadata.mediaTime;
-    video.requestVideoFrameCallback(onVideoFramePresented);
-  };
-  video.requestVideoFrameCallback(onVideoFramePresented);
 }
 
-// Update the timeline interpolation during active transitions
-function updateVideoAnimation(now) {
-  if (!isTransitioning) return;
-
-  const elapsed = now - transitionStartTime;
-  const progress = Math.min(elapsed / TRANSITION_MS, 1.0);
-  const eased = easeInOutCubic(progress);
-
-  requestedTime = startVideoTime + (targetVideoTime - startVideoTime) * eased;
-
-  if (progress >= 1.0) {
-    requestedTime = targetVideoTime;
-  }
-}
+// Keep no-ops for backward compatibility with masterLoop
+function scheduleSeek() {}
+function updateVideoAnimation(now) {}
 
 /* ============================================================
    5. RENDER ALL 15 PROJECTS DYNAMICALLY
@@ -2105,6 +2074,8 @@ function updateNavIndicators(activeIdx = currentSlide) {
 /* ============================================================
    7. SLIDE TRANSITION ENGINE (State Machine)
 ============================================================ */
+let transitionWatchdog = null;
+
 function goToSlide(newIdx) {
   if (isTransitioning) return;
   if (newIdx === currentSlide) return;
@@ -2122,43 +2093,31 @@ function goToSlide(newIdx) {
     toggleProjectCard(expandedCardId, false);
   }
 
-  // Setup hardware-accelerated UI slide transition
-  newEl.style.transition = 'none';
-  newEl.style.opacity    = '0';
-  newEl.style.visibility = 'visible';
-  newEl.style.transform  = dir > 0 ? 'translateY(40px)' : 'translateY(-40px)';
-
-  // Force single reflow
-  void newEl.offsetHeight;
-
-  newEl.style.transition = 'opacity 500ms ease, transform 600ms cubic-bezier(.22, 1, .36, 1)';
-
+  // Clear previous slide inline styles and set exit animation
   oldEl.classList.remove('active');
   oldEl.classList.add(dir > 0 ? 'exit-up' : 'exit-down');
+  oldEl.style.cssText = '';
 
-  requestAnimationFrame(() => {
-    newEl.style.opacity   = '';
-    newEl.style.transform = '';
-    newEl.classList.add('active');
-  });
+  // Setup new slide entrance
+  newEl.style.cssText = '';
+  newEl.classList.remove('exit-up', 'exit-down');
+  newEl.classList.add('active');
 
-  // Setup smooth video animation parameters
-  startVideoTime = video.currentTime;
-  targetVideoTime = slideVideoTimes[newIdx];
-  transitionStartTime = performance.now();
-  requestedTime = startVideoTime;
+  // Trigger smooth video update
+  const targetTime = (slideVideoTimes && slideVideoTimes[newIdx] !== undefined) 
+    ? slideVideoTimes[newIdx] 
+    : (newIdx * 1.0);
+  seekVideoTo(targetTime, dir);
 
   updateNavIndicators(newIdx);
+  currentSlide = newIdx;
 
-  // Transition completion lock (UNLOCK_DELAY ms)
-  setTimeout(() => {
+  // Unconditionally release transition lock
+  clearTimeout(transitionWatchdog);
+  transitionWatchdog = setTimeout(() => {
     oldEl.classList.remove('exit-up', 'exit-down');
-    oldEl.style.visibility = '';
-    currentSlide = newIdx;
     isTransitioning = false;
-    requestedTime = targetVideoTime;
-    scheduleSeek();
-  }, UNLOCK_DELAY);
+  }, 500);
 }
 
 const nextSlide = () => goToSlide(currentSlide + 1);
@@ -2167,66 +2126,84 @@ const prevSlide = () => goToSlide(currentSlide - 1);
 /* ============================================================
    8. INPUT GESTURES (Wheel, Touch, Keyboard)
 ============================================================ */
-let lastWheelTime = 0;
+let wheelAccumulator = 0;
+let wheelCooldown = false;
+let wheelResetTimer = null;
 
 window.addEventListener('wheel', (e) => {
   // Guard for Slide 4 projects scroll
   if (currentSlide === 3 && projectsArea && projectsArea.contains(e.target)) {
     if (expandedCardId !== null) return;
 
-    const atTop = projectsArea.scrollTop <= 4;
-    const atBottom = projectsArea.scrollTop + projectsArea.clientHeight >= projectsArea.scrollHeight - 6;
+    const atTop = projectsArea.scrollTop <= 5;
+    const atBottom = projectsArea.scrollTop + projectsArea.clientHeight >= projectsArea.scrollHeight - 10;
 
-    if (e.deltaY < -15 && atTop && !isTransitioning) {
+    if (e.deltaY < -20 && atTop && !wheelCooldown && !isTransitioning) {
       e.preventDefault();
       prevSlide();
       return;
     }
-    if (e.deltaY > 15 && atBottom && !isTransitioning) {
+    if (e.deltaY > 20 && atBottom && !wheelCooldown && !isTransitioning) {
       e.preventDefault();
       nextSlide();
       return;
     }
-    return;
+    return; // Allow natural internal scrolling of projects
   }
 
   e.preventDefault();
 
-  if (isTransitioning) return;
+  if (isTransitioning || wheelCooldown) return;
 
-  const now = performance.now();
-  if (now - lastWheelTime < UNLOCK_DELAY) return;
+  wheelAccumulator += e.deltaY;
+  clearTimeout(wheelResetTimer);
+  wheelResetTimer = setTimeout(() => { wheelAccumulator = 0; }, 180);
 
-  if (Math.abs(e.deltaY) < 15) return;
+  // Responsive threshold for both laptop trackpads and mouse wheels
+  if (Math.abs(wheelAccumulator) >= 25) {
+    const dir = wheelAccumulator > 0 ? 1 : -1;
+    wheelAccumulator = 0;
+    wheelCooldown = true;
+    setTimeout(() => { wheelCooldown = false; }, 420);
 
-  // STRICT DIRECTION CLAMP: Large deltas move exactly ONE slide
-  const dir = e.deltaY > 0 ? 1 : -1;
-  lastWheelTime = now;
-
-  dir > 0 ? nextSlide() : prevSlide();
+    dir > 0 ? nextSlide() : prevSlide();
+  }
 }, { passive: false });
 
-let touchY0 = 0, touchX0 = 0;
-const SWIPE_MIN = 45;
+let touchStartY = 0;
+let touchStartX = 0;
+let touchStartTime = 0;
 
-window.addEventListener('touchstart', e => {
-  touchY0 = e.touches[0].clientY;
-  touchX0 = e.touches[0].clientX;
+window.addEventListener('touchstart', (e) => {
+  if (e.touches && e.touches.length === 1) {
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+    touchStartTime = performance.now();
+  }
 }, { passive: true });
 
-window.addEventListener('touchend', e => {
+window.addEventListener('touchend', (e) => {
   if (isTransitioning) return;
+  if (!e.changedTouches || e.changedTouches.length === 0) return;
 
-  if (currentSlide === 3 && projectsArea && projectsArea.contains(e.target) && expandedCardId !== null) {
+  // Let project area scroll inside Slide 4 unless at top or bottom
+  if (currentSlide === 3 && projectsArea && projectsArea.contains(e.target)) {
+    const atTop = projectsArea.scrollTop <= 5;
+    const atBottom = projectsArea.scrollTop + projectsArea.clientHeight >= projectsArea.scrollHeight - 10;
+    const dy = touchStartY - e.changedTouches[0].clientY;
+    if (dy < -40 && atTop) { prevSlide(); return; }
+    if (dy > 40 && atBottom) { nextSlide(); return; }
     return;
   }
 
-  const dy = touchY0 - e.changedTouches[0].clientY;
-  const dx = Math.abs(touchX0 - e.changedTouches[0].clientX);
+  const dy = touchStartY - e.changedTouches[0].clientY;
+  const dx = Math.abs(touchStartX - e.changedTouches[0].clientX);
+  const dt = performance.now() - touchStartTime;
 
-  if (Math.abs(dy) < SWIPE_MIN || dx > Math.abs(dy) * 0.8) return;
-
-  dy > 0 ? nextSlide() : prevSlide();
+  // Responsive swipe threshold: minimum 28px vertical movement within 750ms
+  if (Math.abs(dy) >= 28 && dx < Math.abs(dy) * 1.5 && dt < 750) {
+    dy > 0 ? nextSlide() : prevSlide();
+  }
 }, { passive: true });
 
 window.addEventListener('keydown', e => {
