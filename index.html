@@ -1,0 +1,2432 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOPIKRISHNA KS — ECE · AI · Embedded Systems · Research</title>
+  <style>
+/* ============================================================
+   TOKENS & THEME
+============================================================ */
+:root {
+  --cyan:         #00f5d4;
+  --blue:         #0066ff;
+  --purple:       #7b2fff;
+  --white:        #f0f0f0;
+  --dim:          #888;
+  --glass:        rgba(255, 255, 255, 0.04);
+  --glass-b:      rgba(0, 245, 212, 0.15);
+  --glass-hover:  rgba(0, 245, 212, 0.4);
+  --card-bg:      rgba(15, 23, 42, 0.8);
+  
+  --slide-dur:    650ms;
+  --slide-ease:   cubic-bezier(0.4, 0, 0.2, 1);
+  --text-dur:     550ms;
+  --card-dur:     700ms;
+  --project-expand-duration: 500ms;
+}
+
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: var(--white);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  user-select: text;
+}
+
+/* BACKGROUND STAGE */
+#stage {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+#bg-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; pointer-events: none;
+  will-change: transform; transform: translateZ(0);
+  backface-visibility: hidden;
+}
+#stage-overlay {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.45) 0%, rgba(3, 7, 18, 0.88) 100%);
+  pointer-events: none;
+}
+#grid-bg {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.4;
+  background-image:
+    linear-gradient(rgba(0, 245, 212, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 212, 0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+#particle-canvas {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.4;
+}
+
+/* LOADING */
+#loading {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+  background: #000; transition: opacity 0.8s ease;
+}
+#loading h3 {
+  font-size: 0.75rem; letter-spacing: 5px; color: var(--cyan); text-transform: uppercase;
+}
+.loader-bar {
+  width: 220px; height: 2px; background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px; overflow: hidden;
+}
+.loader-fill {
+  height: 100%; background: var(--cyan); width: 0%;
+  transition: width 0.3s ease; box-shadow: 0 0 10px var(--cyan);
+}
+
+/* TOP NAV */
+#nav {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 500; display: flex; align-items: center; gap: 28px;
+  padding: 12px 32px;
+  background: rgba(5, 10, 22, 0.65);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-b); border-radius: 60px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.nav-brand {
+  font-size: 0.75rem; font-weight: 800; letter-spacing: 3px;
+  color: var(--cyan); text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px;
+}
+.nav-brand::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 8px var(--cyan);
+}
+#nav a {
+  font-size: 0.62rem; letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.6); text-decoration: none;
+  text-transform: uppercase; transition: color 0.25s, text-shadow 0.25s;
+  white-space: nowrap;
+}
+#nav a:hover, #nav a.active {
+  color: var(--cyan); text-shadow: 0 0 8px rgba(0, 245, 212, 0.4);
+}
+
+/* SIDE NAV */
+#side-nav {
+  position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+  z-index: 500; display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+#slide-counter {
+  font-size: 0.55rem; font-weight: 700; letter-spacing: 2px; color: var(--cyan);
+  writing-mode: vertical-rl; text-transform: uppercase; margin-bottom: 12px;
+}
+.nav-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(0, 245, 212, 0.3);
+  cursor: pointer; position: relative;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+.nav-dot.active {
+  background: var(--cyan); border-color: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan); transform: scale(1.4);
+}
+.nav-dot:hover { background: rgba(0, 245, 212, 0.5); }
+/* SLIDES CONTAINER */
+.slide {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: clamp(70px, 9vh, 100px) clamp(20px, 6vw, 100px);
+  z-index: 10; pointer-events: none;
+  opacity: 0; visibility: hidden;
+  transform: translateY(40px);
+  transition:
+    opacity    var(--slide-dur) var(--slide-ease),
+    transform  var(--slide-dur) var(--slide-ease),
+    visibility var(--slide-dur);
+}
+.slide.active {
+  opacity: 1; visibility: visible;
+  transform: translateY(0); pointer-events: all;
+}
+.slide.exit-up {
+  opacity: 0; visibility: hidden; transform: translateY(-40px);
+}
+.slide.exit-down {
+  opacity: 0; visibility: hidden; transform: translateY(40px);
+}
+
+.reveal {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.active .reveal { opacity: 1; transform: translateY(0); }
+.active .reveal:nth-child(1) { transition-delay: 0.05s; }
+.active .reveal:nth-child(2) { transition-delay: 0.15s; }
+.active .reveal:nth-child(3) { transition-delay: 0.25s; }
+.active .reveal:nth-child(4) { transition-delay: 0.35s; }
+.active .reveal:nth-child(5) { transition-delay: 0.45s; }
+
+/* TYPOGRAPHY */
+.chapter-tag {
+  font-size: 0.6rem; letter-spacing: 5px; color: var(--cyan);
+  text-transform: uppercase; margin-bottom: 12px; opacity: 0.85;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.chapter-tag::before { content: '//'; color: var(--cyan); opacity: 0.6; }
+
+.slide-title {
+  font-size: clamp(2.2rem, 5.5vw, 4.5rem);
+  font-weight: 900; letter-spacing: 4px; text-transform: uppercase; line-height: 1.05;
+  background: linear-gradient(135deg, #ffffff 20%, var(--cyan) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.glow-title { filter: drop-shadow(0 0 30px rgba(0, 245, 212, 0.35)); }
+
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--glass-b);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px; padding: 24px 28px;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+}
+.glass-card:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 30px rgba(0, 245, 212, 0.15);
+  transform: translateY(-3px);
+}
+
+/* SLIDE 01 — HERO */
+#s01 { text-align: center; }
+.hero-name {
+  font-size: clamp(3rem, 8.8vw, 7.8rem);
+  font-weight: 900; letter-spacing: 8px; text-transform: uppercase; line-height: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #a8fff2 55%, var(--cyan) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 45px rgba(0, 245, 212, 0.4));
+  animation: heroPulse 3.5s ease-in-out infinite alternate;
+}
+@keyframes heroPulse {
+  from { filter: drop-shadow(0 0 20px rgba(0, 245, 212, 0.25)); }
+  to   { filter: drop-shadow(0 0 60px rgba(0, 245, 212, 0.55)); }
+}
+.hero-role {
+  font-size: clamp(0.72rem, 1.9vw, 1.05rem);
+  letter-spacing: 6px; color: var(--cyan); text-transform: uppercase; margin-top: 18px;
+}
+.hero-tagline {
+  font-size: clamp(0.95rem, 2.2vw, 1.35rem);
+  color: rgba(255, 255, 255, 0.35); font-style: italic; margin-top: 24px; letter-spacing: 2px;
+}
+.scroll-hint {
+  margin-top: 50px; font-size: 0.6rem; letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.4); text-transform: uppercase;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  animation: hintBlink 2.2s ease-in-out infinite;
+}
+.scroll-hint::after {
+  content: ''; width: 1px; height: 42px;
+  background: linear-gradient(to bottom, var(--cyan), transparent);
+  animation: lineFall 2.2s ease-in-out infinite;
+}
+@keyframes hintBlink { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.95; } }
+@keyframes lineFall {
+  0%   { transform: scaleY(0); transform-origin: top; }
+  50%  { transform: scaleY(1); transform-origin: top; }
+  51%  { transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+/* SLIDE 02 — MY STORY */
+#s02 { max-width: 860px; text-align: center; }
+.story-body {
+  font-size: clamp(1rem, 2.2vw, 1.28rem); line-height: 1.95;
+  color: rgba(255, 255, 255, 0.7); max-width: 660px; margin: 24px auto 0;
+}
+.keyword-cloud {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 36px;
+}
+.kw-pill {
+  font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--cyan); border: 1px solid rgba(0, 245, 212, 0.3);
+  border-radius: 50px; padding: 8px 22px;
+  background: rgba(0, 245, 212, 0.05);
+  animation: pillGlow 3s ease-in-out infinite; transition: all 0.3s;
+}
+.kw-pill:nth-child(2n) { animation-delay: 0.6s; }
+.kw-pill:nth-child(3n) { animation-delay: 1.2s; }
+.kw-pill:hover {
+  background: rgba(0, 245, 212, 0.18); box-shadow: 0 0 20px rgba(0, 245, 212, 0.25);
+  transform: scale(1.05);
+}
+@keyframes pillGlow { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 16px rgba(0, 245, 212, 0.22); } }
+
+/* SLIDE 03 — WHAT I BUILD */
+#s03 { max-width: 1100px; width: 100%; }
+#s03 .slide-header { text-align: center; margin-bottom: 36px; }
+.build-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px; width: 100%;
+}
+.build-card { position: relative; overflow: hidden; }
+.build-card::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+  background: linear-gradient(to bottom, var(--cyan), var(--purple));
+  border-radius: 3px 0 0 3px;
+}
+.build-num { font-size: 0.55rem; letter-spacing: 3px; color: var(--cyan); margin-bottom: 10px; font-weight: 700; }
+.build-title { font-size: 1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #fff; margin-bottom: 10px; }
+.build-tags { font-size: 0.65rem; color: var(--dim); letter-spacing: 1px; line-height: 1.8; }
+/* SLIDE 04 — FEATURED PROJECTS (15 Projects & In-Place Expansion) */
+#s04 {
+  max-width: 1240px; width: 100%; height: 100vh;
+  justify-content: flex-start;
+  padding-top: 80px; padding-bottom: 30px;
+}
+.proj-top-bar {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  width: 100%; margin-bottom: 16px; flex-shrink: 0;
+}
+.proj-stats-badge {
+  font-size: 0.6rem; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--cyan); background: rgba(0, 245, 212, 0.08);
+  border: 1px solid rgba(0, 245, 212, 0.25); border-radius: 30px;
+  padding: 6px 16px; display: flex; align-items: center; gap: 8px;
+}
+.proj-stats-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 8px var(--cyan);
+}
+
+#projects-scroll-area {
+  width: 100%; flex: 1; min-height: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding-right: 12px;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+#projects-scroll-area::-webkit-scrollbar { width: 5px; }
+#projects-scroll-area::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); border-radius: 4px; }
+#projects-scroll-area::-webkit-scrollbar-thumb { background: rgba(0, 245, 212, 0.3); border-radius: 4px; }
+#projects-scroll-area::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px; width: 100%;
+}
+
+/* Individual Project Card */
+.project-card {
+  background: rgba(12, 18, 34, 0.85);
+  border: 1px solid var(--glass-b);
+  border-radius: 16px;
+  padding: 22px 24px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease,
+    background 0.3s ease;
+}
+.project-card:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 6px 28px rgba(0, 245, 212, 0.15);
+  transform: translateY(-3px);
+  background: rgba(16, 25, 46, 0.95);
+}
+
+.project-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple), transparent);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s ease;
+}
+.project-card:hover::after,
+.project-card.expanded::after { transform: scaleX(1); }
+
+.card-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.card-num-badge {
+  font-size: 0.52rem; letter-spacing: 2px; font-weight: 700;
+  color: var(--cyan); text-transform: uppercase;
+}
+.card-cat-tag {
+  font-size: 0.52rem; letter-spacing: 1.5px;
+  color: var(--dim); text-transform: uppercase;
+}
+.card-title {
+  font-size: 1.05rem; font-weight: 800; letter-spacing: 1.5px;
+  color: #fff; text-transform: uppercase; margin-bottom: 6px;
+}
+.card-subtitle {
+  font-size: 0.74rem; line-height: 1.6; color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 14px;
+}
+.card-chips-row {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+}
+.tech-tag-chip {
+  font-size: 0.52rem; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--cyan); background: rgba(0, 245, 212, 0.06);
+  border: 1px solid rgba(0, 245, 212, 0.2); border-radius: 4px;
+  padding: 3px 8px;
+}
+.card-footer-action {
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px;
+  font-size: 0.58rem; letter-spacing: 2.5px; font-weight: 700;
+  color: var(--cyan); text-transform: uppercase;
+}
+.card-footer-action .action-arrow { transition: transform 0.3s ease; }
+.project-card:hover .action-arrow { transform: translateX(4px); }
+
+/* Expanded State */
+.project-card.expanded {
+  grid-column: 1 / -1;
+  border-color: var(--cyan);
+  background: rgba(10, 16, 32, 0.98);
+  box-shadow: 0 10px 40px rgba(0, 245, 212, 0.2), inset 0 0 20px rgba(0, 245, 212, 0.03);
+  cursor: default;
+  transform: translateY(0);
+}
+.btn-card-close {
+  display: none;
+  font-size: 0.6rem; letter-spacing: 2.5px; font-weight: 700;
+  color: var(--cyan); background: rgba(0, 245, 212, 0.1);
+  border: 1px solid var(--cyan); border-radius: 20px;
+  padding: 5px 14px; cursor: pointer; text-transform: uppercase;
+  transition: all 0.25s;
+}
+.btn-card-close:hover {
+  background: var(--cyan); color: #000; box-shadow: 0 0 14px var(--cyan);
+}
+.project-card.expanded .btn-card-close {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.project-card.expanded .card-footer-action { display: none; }
+
+.card-expanded-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--project-expand-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    opacity var(--project-expand-duration) ease;
+}
+.project-card.expanded .card-expanded-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 18px; padding-top: 18px;
+  border-top: 1px solid rgba(0, 245, 212, 0.2);
+}
+.card-expanded-inner { overflow: hidden; }
+
+.exp-section-title {
+  font-size: 0.55rem; letter-spacing: 3px; font-weight: 800;
+  color: var(--cyan); text-transform: uppercase;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.exp-section-title::before { content: '■'; color: var(--cyan); font-size: 0.5rem; }
+.exp-text {
+  font-size: 0.8rem; line-height: 1.8; color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 18px;
+}
+.exp-context-badge {
+  display: inline-block; font-size: 0.58rem; letter-spacing: 2px; text-transform: uppercase;
+  color: #fff; background: linear-gradient(90deg, rgba(123, 47, 255, 0.25), rgba(0, 245, 212, 0.15));
+  border: 1px solid rgba(123, 47, 255, 0.4); border-radius: 6px;
+  padding: 4px 12px; margin-bottom: 16px;
+}
+.pipeline-flow {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
+}
+.pipe-step-box {
+  background: rgba(0, 245, 212, 0.05); border: 1px solid rgba(0, 245, 212, 0.25);
+  border-radius: 8px; padding: 7px 14px;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px;
+  color: #fff; text-transform: uppercase;
+}
+.pipe-arrow { color: var(--cyan); font-weight: 700; font-size: 0.8rem; }
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.metric-card {
+  background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px; padding: 12px 14px; text-align: center;
+}
+.metric-val {
+  font-size: 1.15rem; font-weight: 900; letter-spacing: 1px;
+  color: var(--cyan); margin-bottom: 4px;
+}
+.metric-lbl {
+  font-size: 0.52rem; letter-spacing: 2px; text-transform: uppercase; color: var(--dim);
+}
+.exp-tech-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.exp-chip {
+  font-size: 0.58rem; letter-spacing: 1.5px; text-transform: uppercase;
+  color: #fff; background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;
+  padding: 5px 12px; transition: border-color 0.2s, background 0.2s;
+}
+.exp-chip:hover { border-color: var(--cyan); background: rgba(0, 245, 212, 0.08); }
+/* SLIDE 05 — ARSENAL */
+#s05 { max-width: 1050px; width: 100%; }
+#s05 .slide-header { text-align: center; margin-bottom: 34px; }
+.tech-groups-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 20px; width: 100%;
+}
+.tech-group-col-title {
+  font-size: 0.6rem; letter-spacing: 3px; color: var(--cyan);
+  text-transform: uppercase; margin-bottom: 14px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 245, 212, 0.2);
+}
+.tech-item-row {
+  font-size: 0.8rem; color: rgba(255, 255, 255, 0.7);
+  padding: 6px 0; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px; transition: color 0.25s;
+}
+.tech-item-row::before {
+  content: ''; display: block; width: 4px; height: 4px;
+  border-radius: 50%; background: var(--cyan); flex-shrink: 0;
+  box-shadow: 0 0 6px var(--cyan);
+}
+.tech-item-row:hover { color: #fff; }
+
+/* SLIDE 06 — BUILDING */
+#s06 { max-width: 820px; width: 100%; }
+#s06 .slide-header { text-align: center; margin-bottom: 30px; }
+.dashboard-card {
+  border: 1px solid rgba(0, 245, 212, 0.25); border-radius: 20px;
+  overflow: hidden; background: rgba(5, 10, 22, 0.85);
+  backdrop-filter: blur(20px); width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.dash-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 28px; border-bottom: 1px solid rgba(0, 245, 212, 0.12);
+  background: rgba(0, 245, 212, 0.03);
+}
+.dash-top h3 {
+  font-size: 0.85rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #fff;
+}
+.status-badge-glow {
+  font-size: 0.55rem; letter-spacing: 3px; text-transform: uppercase;
+  color: #000; background: var(--cyan); padding: 5px 14px;
+  border-radius: 50px; font-weight: 800;
+  animation: badgeBlink 1.6s ease-in-out infinite;
+}
+@keyframes badgeBlink {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 245, 212, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 245, 212, 0); }
+}
+.dashboard-pipeline { padding: 30px 28px; display: flex; flex-direction: column; }
+.dash-pipe-step { display: flex; align-items: flex-start; gap: 18px; }
+.dash-pipe-col  { display: flex; flex-direction: column; align-items: center; }
+.dash-pipe-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 10px var(--cyan);
+  flex-shrink: 0; margin-top: 4px;
+}
+.dash-pipe-line {
+  width: 2px; height: 34px;
+  background: linear-gradient(to bottom, var(--cyan), rgba(0, 245, 212, 0.1));
+}
+.dash-pipe-step:last-child .dash-pipe-line { display: none; }
+.dash-pipe-label {
+  font-size: 0.82rem; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75); padding-bottom: 30px; font-weight: 600;
+}
+.mindset-sub-banner { text-align: center; margin-top: 24px; padding: 0 20px; }
+.mindset-quote {
+  font-size: 0.85rem; font-weight: 700; letter-spacing: 3px;
+  color: var(--cyan); text-transform: uppercase; margin-bottom: 6px;
+}
+.mindset-desc {
+  font-size: 0.75rem; color: rgba(255, 255, 255, 0.5); font-style: italic;
+}
+
+/* SLIDE 07 — EDUCATION */
+#s07 { max-width: 700px; width: 100%; text-align: center; }
+.edu-card { text-align: left; margin-top: 36px; width: 100%; }
+.edu-institution {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 800;
+  letter-spacing: 3px; text-transform: uppercase; color: #fff; margin-bottom: 8px;
+}
+.edu-degree {
+  font-size: 0.85rem; color: var(--cyan); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px;
+}
+.edu-years { font-size: 0.7rem; letter-spacing: 3px; color: var(--dim); }
+.timeline-bar {
+  width: 100%; height: 2px; background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px; margin: 20px 0; overflow: hidden;
+}
+.timeline-fill {
+  height: 100%; background: linear-gradient(90deg, var(--cyan), var(--purple));
+  border-radius: 2px; width: 0%; transition: width 1.5s ease 0.4s;
+}
+.active .timeline-fill { width: 25%; }
+
+/* SLIDE 08 — EXPERIENCE */
+#s08 { max-width: 720px; width: 100%; }
+#s08 .slide-header { text-align: center; margin-bottom: 36px; }
+.exp-row { display: flex; gap: 24px; align-items: flex-start; }
+.exp-dot-col { display: flex; flex-direction: column; align-items: center; padding-top: 4px; }
+.exp-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 10px var(--cyan); flex-shrink: 0;
+}
+.exp-line { width: 2px; flex: 1; background: rgba(0, 245, 212, 0.18); margin-top: 6px; min-height: 80px; }
+.exp-role {
+  font-size: 1.05rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #fff; margin-bottom: 4px;
+}
+.exp-company {
+  font-size: 0.7rem; letter-spacing: 3px; color: var(--cyan); text-transform: uppercase; margin-bottom: 14px; font-weight: 700;
+}
+.exp-desc {
+  font-size: 0.82rem; line-height: 1.85; color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================================
+   SLIDE 09 — UPGRADED TACTICAL FULL-VIEWPORT CONTACT SECTION
+============================================================ */
+#s09 {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  max-width: 100%;
+  padding: clamp(20px, 3vh, 36px) 2vw clamp(14px, 2vh, 24px) 2vw;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-container {
+  width: min(96vw, 1500px);
+  height: 100%;
+  max-height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* --- HEADING (Upper ~12-15% of viewport) --- */
+.contact-header {
+  flex-shrink: 0;
+  text-align: center;
+  margin-bottom: clamp(14px, 2.2vh, 32px);
+  width: 100%;
+}
+
+.contact-eyebrow {
+  font-size: clamp(0.58rem, 0.75vw, 0.68rem);
+  letter-spacing: 5px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: clamp(4px, 0.5vh, 7px);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.contact-eyebrow::before {
+  content: '//';
+  opacity: 0.7;
+}
+
+.contact-main-heading {
+  font-size: clamp(1.8rem, 3.4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  line-height: 1.05;
+  background: linear-gradient(135deg, #ffffff 20%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 25px rgba(0, 245, 212, 0.35));
+  margin-bottom: clamp(4px, 0.5vh, 8px);
+}
+
+.contact-headline {
+  font-size: clamp(0.95rem, 1.5vw, 1.3rem);
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  line-height: 1.25;
+  color: var(--white);
+  text-transform: uppercase;
+  margin-bottom: clamp(4px, 0.4vh, 6px);
+}
+
+.contact-headline-sub {
+  background: linear-gradient(135deg, var(--white) 30%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.contact-disciplines {
+  font-size: clamp(0.58rem, 0.75vw, 0.66rem);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  font-weight: 600;
+}
+.contact-disciplines span {
+  color: var(--cyan);
+}
+
+/* --- CARDS GRID (Middle ~55-60% of viewport) --- */
+.contact-grid,
+.contact-cards-grid {
+  width: 100%;
+  flex: 1;
+  max-height: clamp(380px, 58vh, 560px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 1.6vh, 18px);
+  min-height: 0;
+  align-content: stretch;
+}
+
+.contact-card {
+  width: 100%;
+  min-width: 0;
+  min-height: clamp(150px, 20vh, 220px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  text-decoration: none;
+  background: rgba(7, 25, 48, 0.72);
+  border: 1px solid rgba(0, 245, 212, 0.2);
+  border-radius: 16px;
+  padding: clamp(12px, 1.8vh, 20px) clamp(16px, 1.8vw, 24px);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 18px rgba(0, 245, 212, 0.05);
+  transition:
+    transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+    border-color 0.35s ease,
+    background 0.35s ease,
+    box-shadow 0.35s ease;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.contact-card:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.contact-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan), rgba(0, 245, 212, 0.1), transparent);
+  transform: scaleX(0.2);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--cyan);
+  background: rgba(11, 38, 72, 0.85);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 30px rgba(0, 245, 212, 0.22);
+}
+
+.contact-card:hover::before {
+  transform: scaleX(1);
+}
+
+.card-top-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: clamp(6px, 0.8vh, 10px);
+  flex-shrink: 0;
+}
+
+.card-step-num {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: clamp(0.68rem, 0.85vw, 0.78rem);
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: rgba(234, 246, 255, 0.35);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.contact-card:hover .card-step-num {
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0, 245, 212, 0.6);
+}
+
+.card-icon-wrap {
+  width: clamp(30px, 3.8vh, 38px);
+  height: clamp(30px, 3.8vh, 38px);
+  border-radius: 9px;
+  background: rgba(0, 245, 212, 0.08);
+  border: 1px solid rgba(0, 245, 212, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cyan);
+  transition: transform 0.35s ease, background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.contact-card:hover .card-icon-wrap {
+  transform: scale(1.1);
+  background: rgba(0, 245, 212, 0.18);
+  border-color: var(--cyan);
+  box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+}
+
+.contact-svg-icon {
+  width: clamp(15px, 1.8vh, 18px);
+  height: clamp(15px, 1.8vh, 18px);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
+  min-height: 0;
+}
+
+.card-main-title {
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white);
+  margin-bottom: clamp(2px, 0.3vh, 4px);
+  line-height: 1.2;
+}
+
+.card-handle {
+  font-size: clamp(0.66rem, 0.85vw, 0.76rem);
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--cyan);
+  margin-bottom: clamp(3px, 0.5vh, 6px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-desc {
+  font-size: clamp(0.62rem, 0.78vw, 0.72rem);
+  line-height: 1.4;
+  color: var(--dim);
+  margin-bottom: clamp(4px, 0.6vh, 8px);
+}
+
+.card-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(0, 245, 212, 0.12);
+  padding-top: clamp(6px, 0.8vh, 9px);
+  font-size: clamp(0.56rem, 0.75vw, 0.64rem);
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.cta-arrow {
+  font-size: 0.85rem;
+  transition: transform 0.3s ease;
+}
+
+.contact-card:hover .cta-arrow {
+  transform: translateX(6px);
+}
+
+/* --- FOOTER (Span entire width, 3 balanced zones) --- */
+.contact-footer-line {
+  flex-shrink: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding-top: clamp(8px, 1.2vh, 12px);
+  margin-top: clamp(8px, 1.2vh, 14px);
+  border-top: 1px solid rgba(0, 245, 212, 0.16);
+  font-size: clamp(0.54rem, 0.8vw, 0.64rem);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  box-sizing: border-box;
+}
+
+.cf-left {
+  text-align: left;
+  display: flex;
+  align-items: center;
+}
+
+.cf-author {
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: 2px;
+}
+
+.cf-center {
+  text-align: center;
+  letter-spacing: 2.5px;
+  font-weight: 600;
+  color: rgba(234, 246, 255, 0.75);
+}
+
+.cf-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-align: right;
+}
+
+.cf-status-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 14px var(--cyan); }
+}
+
+/* --- RESPONSIVE MEDIA QUERIES --- */
+@media (max-width: 960px) {
+  /* Tablet: 2x2 cards preserved */
+  .contact-container {
+    width: 96vw;
+  }
+  .contact-grid,
+  .contact-cards-grid {
+    gap: 12px;
+  }
+  .contact-footer-line {
+    font-size: 0.52rem;
+    letter-spacing: 1.5px;
+  }
+}
+
+@media (max-width: 680px) {
+  /* Mobile: 1x4 cards, compact fit within 100vh with no scrollbars */
+  #s09 {
+    padding: clamp(14px, 2vh, 20px) 3vw clamp(8px, 1.2vh, 14px) 3vw;
+  }
+  .contact-container {
+    width: 100%;
+  }
+  .contact-header {
+    margin-bottom: 6px;
+  }
+  .contact-eyebrow {
+    font-size: 0.5rem;
+    letter-spacing: 2.5px;
+    margin-bottom: 2px;
+  }
+  .contact-main-heading {
+    font-size: 1.4rem;
+    margin-bottom: 2px;
+  }
+  .contact-headline {
+    font-size: 0.78rem;
+    margin-bottom: 2px;
+  }
+  .contact-disciplines {
+    font-size: 0.5rem;
+    letter-spacing: 1px;
+  }
+  .contact-grid,
+  .contact-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    max-height: none;
+  }
+  .contact-card {
+    min-height: unset;
+    padding: 6px 10px;
+    border-radius: 9px;
+  }
+  .card-top-meta {
+    margin-bottom: 2px;
+  }
+  .card-step-num {
+    font-size: 0.58rem;
+  }
+  .card-icon-wrap {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+  }
+  .contact-svg-icon {
+    width: 11px;
+    height: 11px;
+  }
+  .card-main-title {
+    font-size: 0.74rem;
+    margin-bottom: 1px;
+  }
+  .card-handle {
+    font-size: 0.6rem;
+    margin-bottom: 1px;
+  }
+  .card-desc {
+    display: none;
+  }
+  .card-cta-row {
+    padding-top: 3px;
+    font-size: 0.5rem;
+  }
+  .contact-footer-line {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    text-align: center;
+    padding-top: 5px;
+    margin-top: 5px;
+    font-size: 0.46rem;
+  }
+  .cf-left,
+  .cf-center,
+  .cf-right {
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* SLIDE 10 — FINAL */
+#s10 { text-align: center; }
+.final-name {
+  font-size: clamp(2.2rem, 7.5vw, 6.2rem); font-weight: 900;
+  letter-spacing: 8px; text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, var(--cyan) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; filter: drop-shadow(0 0 40px rgba(0, 245, 212, 0.3));
+}
+.final-role {
+  font-size: 0.65rem; letter-spacing: 5px; color: var(--cyan);
+  text-transform: uppercase; margin-top: 16px;
+}
+.final-tagline {
+  font-size: 1.05rem; color: rgba(255, 255, 255, 0.25); font-style: italic;
+  margin-top: 20px; letter-spacing: 2px;
+}
+.final-copy {
+  font-size: 0.6rem; letter-spacing: 3px; color: rgba(255, 255, 255, 0.15);
+  text-transform: uppercase; margin-top: 48px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .projects-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  #nav { gap: 14px; padding: 10px 18px; }
+  .nav-links { display: none !important; }
+  #side-nav { right: 10px; }
+  .pipeline-flow { flex-direction: column; align-items: flex-start; }
+  .pipe-arrow { transform: rotate(90deg); margin: 2px 0; }
+  .build-grid { grid-template-columns: 1fr 1fr; }
+  .tech-groups-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+  .build-grid { grid-template-columns: 1fr; }
+  .tech-groups-grid { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+  
+
+/* DEVELOPER HUD */
+#debug-hud {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  background: rgba(3, 11, 23, 0.92);
+  border: 1px solid rgba(0, 245, 212, 0.45);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.72rem;
+  color: var(--cyan);
+  line-height: 1.6;
+  z-index: 99999;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  letter-spacing: 1px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- STAGE -->
+<div id="stage">
+  <video id="bg-video" src="./abc.mp4" muted playsinline preload="auto"></video>
+  <div id="stage-overlay"></div>
+</div>
+<div id="grid-bg"></div>
+<canvas id="particle-canvas"></canvas>
+
+<!-- DEVELOPER HUD (Enabled when DEBUG_VIDEO = true) -->
+<div id="debug-hud" style="display:none;">
+  <div id="debug-slide">SLIDE: 01</div>
+  <div id="debug-video">VIDEO: 0.00 / 9.00</div>
+  <div id="debug-target">TARGET: 0.00</div>
+  <div id="debug-state">TRANSITION: IDLE</div>
+  <div id="debug-fps">FPS: 60</div>
+</div>
+
+
+<!-- LOADING -->
+<div id="loading">
+  <h3>INITIALIZING PORTFOLIO</h3>
+  <div class="loader-bar"><div class="loader-fill" id="loader-fill"></div></div>
+</div>
+
+<!-- TOP NAV -->
+<nav id="nav">
+  <div class="nav-brand">GOPIKRISHNA KS</div>
+  <div class="nav-links" style="display:flex;gap:22px;">
+    <a href="#" data-slide="1">Story</a>
+    <a href="#" data-slide="2">Capabilities</a>
+    <a href="#" data-slide="3">Projects (15)</a>
+    <a href="#" data-slide="4">Arsenal</a>
+    <a href="#" data-slide="5">Building</a>
+    <a href="#" data-slide="8">Contact</a>
+  </div>
+</nav>
+
+<!-- SIDE NAV -->
+<div id="side-nav">
+  <div id="slide-counter">01 / 10</div>
+</div>
+
+<!-- 01 — HERO -->
+<div class="slide active" id="s01">
+  <div class="hero-name reveal">GOPIKRISHNA KS</div>
+  <div class="hero-role reveal">ECE STUDENT &nbsp;•&nbsp; AI &nbsp;•&nbsp; EMBEDDED SYSTEMS</div>
+  <div class="hero-tagline reveal">"Small Room. Big Ideas."</div>
+  <div class="scroll-hint reveal">SCROLL TO EXPLORE</div>
+</div>
+
+<!-- 02 — MY STORY -->
+<div class="slide" id="s02">
+  <div class="chapter-tag reveal">02 — Chapter</div>
+  <div class="slide-title glow-title reveal">MY STORY</div>
+  <p class="story-body reveal">
+    I am an Electronics and Communication Engineering student passionate about
+    building intelligent systems at the intersection of hardware, software,
+    AI and real-world engineering.
+  </p>
+  <div class="keyword-cloud">
+    <span class="kw-pill reveal">AI</span>
+    <span class="kw-pill reveal">Embedded Systems</span>
+    <span class="kw-pill reveal">Computer Vision</span>
+    <span class="kw-pill reveal">DSP</span>
+    <span class="kw-pill reveal">Robotics</span>
+    <span class="kw-pill reveal">Edge AI</span>
+  </div>
+</div>
+
+<!-- 03 — WHAT I BUILD -->
+<div class="slide" id="s03">
+  <div class="slide-header">
+    <div class="chapter-tag reveal">03 — Capabilities</div>
+    <div class="slide-title reveal">WHAT I BUILD</div>
+  </div>
+  <div class="build-grid">
+    <div class="glass-card build-card reveal">
+      <div class="build-num">01</div>
+      <div class="build-title">AI SYSTEMS</div>
+      <div class="build-tags">Computer Vision • Machine Learning • Edge AI</div>
+    </div>
+    <div class="glass-card build-card reveal">
+      <div class="build-num">02</div>
+      <div class="build-title">EMBEDDED SYSTEMS</div>
+      <div class="build-tags">ESP32 • Raspberry Pi • Sensors • TinyML</div>
+    </div>
+    <div class="glass-card build-card reveal">
+      <div class="build-num">03</div>
+      <div class="build-title">SIGNAL PROCESSING</div>
+      <div class="build-tags">DSP • Radar • Audio • Vibration Analysis</div>
+    </div>
+    <div class="glass-card build-card reveal">
+      <div class="build-num">04</div>
+      <div class="build-title">ROBOTICS</div>
+      <div class="build-tags">Autonomous Systems • Tracking • Navigation</div>
+    </div>
+  </div>
+</div>
+<!-- 04 — FEATURED PROJECTS (15 Deep-Tech Projects) -->
+<div class="slide" id="s04">
+  <div class="proj-top-bar">
+    <div>
+      <div class="chapter-tag">04 — Work & Research</div>
+      <div class="slide-title" style="font-size:clamp(1.8rem,4vw,3.2rem);">FEATURED PROJECTS</div>
+    </div>
+    <div class="proj-stats-badge">15 Archive Entries • Click to Expand</div>
+  </div>
+
+  <div id="projects-scroll-area">
+    <div class="projects-grid" id="projects-grid">
+      <!-- 15 dynamic project cards injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- 05 — TECHNICAL ARSENAL -->
+<div class="slide" id="s05">
+  <div class="slide-header">
+    <div class="chapter-tag reveal">05 — Stack</div>
+    <div class="slide-title reveal">TECHNICAL ARSENAL</div>
+  </div>
+  <div class="tech-groups-grid">
+    <div class="glass-card reveal">
+      <div class="tech-group-col-title">Languages</div>
+      <div class="tech-item-row">Python</div>
+      <div class="tech-item-row">C++</div>
+      <div class="tech-item-row">C</div>
+      <div class="tech-item-row">JavaScript</div>
+    </div>
+    <div class="glass-card reveal">
+      <div class="tech-group-col-title">AI / ML</div>
+      <div class="tech-item-row">PyTorch</div>
+      <div class="tech-item-row">Machine Learning</div>
+      <div class="tech-item-row">Computer Vision</div>
+      <div class="tech-item-row">TinyML</div>
+      <div class="tech-item-row">Edge AI</div>
+    </div>
+    <div class="glass-card reveal">
+      <div class="tech-group-col-title">Embedded</div>
+      <div class="tech-item-row">ESP32</div>
+      <div class="tech-item-row">Arduino</div>
+      <div class="tech-item-row">Raspberry Pi</div>
+      <div class="tech-item-row">Sensors</div>
+      <div class="tech-item-row">IoT</div>
+    </div>
+    <div class="glass-card reveal">
+      <div class="tech-group-col-title">Signal Processing</div>
+      <div class="tech-item-row">FFT</div>
+      <div class="tech-item-row">STFT</div>
+      <div class="tech-item-row">Filtering</div>
+      <div class="tech-item-row">Doppler Analysis</div>
+      <div class="tech-item-row">Vibration Analysis</div>
+    </div>
+    <div class="glass-card reveal">
+      <div class="tech-group-col-title">Web</div>
+      <div class="tech-item-row">React</div>
+      <div class="tech-item-row">HTML / CSS</div>
+      <div class="tech-item-row">JavaScript</div>
+      <div class="tech-item-row">Firebase</div>
+    </div>
+  </div>
+</div>
+
+<!-- 06 — CURRENTLY BUILDING -->
+<div class="slide" id="s06">
+  <div class="slide-header">
+    <div class="chapter-tag reveal">06 — Active</div>
+    <div class="slide-title reveal">CURRENTLY BUILDING</div>
+  </div>
+  <div class="dashboard-card reveal">
+    <div class="dash-top">
+      <h3>ZERO-DELAY HUMAN HEAD TRACKING</h3>
+      <span class="status-badge-glow">BUILDING NOW</span>
+    </div>
+    <div class="dashboard-pipeline">
+      <div class="dash-pipe-step">
+        <div class="dash-pipe-col"><div class="dash-pipe-dot"></div><div class="dash-pipe-line"></div></div>
+        <div class="dash-pipe-label">Camera</div>
+      </div>
+      <div class="dash-pipe-step">
+        <div class="dash-pipe-col"><div class="dash-pipe-dot"></div><div class="dash-pipe-line"></div></div>
+        <div class="dash-pipe-label">Face Detection</div>
+      </div>
+      <div class="dash-pipe-step">
+        <div class="dash-pipe-col"><div class="dash-pipe-dot"></div><div class="dash-pipe-line"></div></div>
+        <div class="dash-pipe-label">Head Pose Estimation</div>
+      </div>
+      <div class="dash-pipe-step">
+        <div class="dash-pipe-col"><div class="dash-pipe-dot"></div><div class="dash-pipe-line"></div></div>
+        <div class="dash-pipe-label">Real-Time Tracking</div>
+      </div>
+      <div class="dash-pipe-step">
+        <div class="dash-pipe-col"><div class="dash-pipe-dot"></div></div>
+        <div class="dash-pipe-label">Low-Latency Output</div>
+      </div>
+    </div>
+  </div>
+  <div class="mindset-sub-banner reveal">
+    <div class="mindset-quote">"WORK HARD UNTIL YOU SEE RESULTS."</div>
+    <div class="mindset-desc">"I don't just learn technologies. I try to turn them into working systems."</div>
+  </div>
+</div>
+
+<!-- 07 — EDUCATION -->
+<div class="slide" id="s07">
+  <div class="chapter-tag reveal">07 — Education</div>
+  <div class="slide-title reveal">EDUCATION</div>
+  <div class="glass-card edu-card reveal">
+    <div class="edu-institution">Chennai Institute of Technology</div>
+    <div class="edu-degree">B.E. Electronics and Communication Engineering</div>
+    <div class="edu-years">2025 — 2029</div>
+    <div class="timeline-bar"><div class="timeline-fill"></div></div>
+    <div style="font-size:0.6rem;letter-spacing:2px;color:var(--dim);">YEAR 1 OF 4 • IN PROGRESS</div>
+  </div>
+</div>
+
+<!-- 08 — EXPERIENCE -->
+<div class="slide" id="s08">
+  <div class="slide-header">
+    <div class="chapter-tag reveal">08 — Experience</div>
+    <div class="slide-title reveal">EXPERIENCE</div>
+  </div>
+  <div class="exp-row reveal">
+    <div class="exp-dot-col">
+      <div class="exp-dot"></div>
+      <div class="exp-line"></div>
+    </div>
+    <div class="glass-card" style="flex:1;">
+      <div class="exp-role">SOFTWARE INTERN</div>
+      <div class="exp-company">CodSoft</div>
+      <p class="exp-desc">
+        Gained hands-on experience in software development, programming and building practical projects.
+        Worked across real-world codebases, sharpening problem-solving skills and translating engineering
+        concepts into functional, robust software solutions.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- 09 — CONTACT -->
+<div class="slide" id="s09">
+  <div class="contact-container">
+    <div class="contact-header reveal">
+      <div class="contact-eyebrow">LET'S BUILD SOMETHING</div>
+      <div class="contact-main-heading">CONTACT</div>
+      <div class="contact-headline">
+        HAVE AN IDEA?<br>
+        <span class="contact-headline-sub">LET'S TURN IT INTO REALITY.</span>
+      </div>
+      <div class="contact-disciplines">
+        <span>AI</span> • <span>EMBEDDED SYSTEMS</span> • <span>DSP</span> • <span>COMPUTER VISION</span> • <span>ROBOTICS</span>
+      </div>
+    </div>
+
+    <!-- 4 Premium Interactive Contact Cards in 2x2 Grid -->
+    <div class="contact-cards-grid contact-grid reveal">
+      
+      <!-- 01 GITHUB -->
+      <a href="https://github.com/krishna1980moorthy-cmyk" target="_blank" rel="noopener noreferrer" class="contact-card" aria-label="Explore Gopikrishna's GitHub code and repositories">
+        <div class="card-top-meta">
+          <span class="card-step-num">01</span>
+          <div class="card-icon-wrap">
+            <svg class="contact-svg-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-main-title">GITHUB</div>
+          <div class="card-handle">krishna1980moorthy-cmyk</div>
+          <p class="card-desc">Explore my code, experiments, research prototypes and projects.</p>
+        </div>
+        <div class="card-cta-row">
+          <span>VIEW GITHUB</span>
+          <span class="cta-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 02 LINKEDIN -->
+      <a href="https://www.linkedin.com/in/gopi-krishna-ks-22167a374" target="_blank" rel="noopener noreferrer" class="contact-card" aria-label="Connect with Gopikrishna KS on LinkedIn">
+        <div class="card-top-meta">
+          <span class="card-step-num">02</span>
+          <div class="card-icon-wrap">
+            <svg class="contact-svg-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-main-title">LINKEDIN</div>
+          <div class="card-handle">GOPI KRISHNA KS</div>
+          <p class="card-desc">Connect with me for projects, collaboration, research and opportunities.</p>
+        </div>
+        <div class="card-cta-row">
+          <span>CONNECT ON LINKEDIN</span>
+          <span class="cta-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 03 INSTAGRAM -->
+      <a href="https://www.instagram.com/urfavv._gopi" target="_blank" rel="noopener noreferrer" class="contact-card" aria-label="Follow Gopikrishna KS on Instagram">
+        <div class="card-top-meta">
+          <span class="card-step-num">03</span>
+          <div class="card-icon-wrap">
+            <svg class="contact-svg-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-main-title">INSTAGRAM</div>
+          <div class="card-handle">@urfavv._gopi</div>
+          <p class="card-desc">Follow my journey, builds, experiments and tech life.</p>
+        </div>
+        <div class="card-cta-row">
+          <span>FOLLOW</span>
+          <span class="cta-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 04 PHONE -->
+      <a href="tel:+918610087223" class="contact-card" aria-label="Call Gopikrishna KS at +91 86100 87223">
+        <div class="card-top-meta">
+          <span class="card-step-num">04</span>
+          <div class="card-icon-wrap">
+            <svg class="contact-svg-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-main-title">PHONE</div>
+          <div class="card-handle" style="font-family:monospace;letter-spacing:2px;font-size:clamp(0.72rem, 0.9vw, 0.82rem);">+91 86100 87223</div>
+          <p class="card-desc">Available for project discussions, collaboration and opportunities.</p>
+        </div>
+        <div class="card-cta-row">
+          <span>CALL ME</span>
+          <span class="cta-arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Contact Section Footer Line (Full Width, 3 Balanced Zones) -->
+    <div class="contact-footer-line reveal">
+      <div class="cf-left">
+        <span class="cf-author">GOPIKRISHNA KS</span>
+      </div>
+      <div class="cf-center">
+        ECE • AI • EMBEDDED SYSTEMS • DSP • ROBOTICS
+      </div>
+      <div class="cf-right cf-status">
+        <span class="cf-status-pulse"></span>
+        <span>AVAILABLE FOR COLLABORATION</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 10 — FINAL -->
+<div class="slide" id="s10">
+  <div class="final-name reveal">GOPIKRISHNA KS</div>
+  <div class="final-role reveal">ECE &nbsp;•&nbsp; AI &nbsp;•&nbsp; EMBEDDED &nbsp;•&nbsp; RESEARCH</div>
+  <div class="final-tagline reveal">"Small Room. Big Ideas."</div>
+  <div class="final-copy reveal">© 2026 Gopikrishna KS</div>
+</div>
+
+<script>
+'use strict';
+const particleRgb = {
+  r: 0,
+  g: 245,
+  b: 212,
+  toString() { return `${this.r}, ${this.g}, ${this.b}`; }
+};
+/* ============================================================
+   1. 15 DEEP-TECH PROJECTS DATA
+============================================================ */
+const projects = [
+  {
+    id: 1,
+    num: "PROJECT 01",
+    title: "AEGIS-ANC",
+    subtitle: "Causal DSP-Neural Hybrid Active Noise Cancellation",
+    category: "DSP • Edge AI • Defense Audio",
+    context: "Smart India Hackathon 2026 | PS ID: SIH26052 | Team Golden Dawn",
+    tags: ["SIH 2026", "Jetson Orin", "DeepFilterNet3", "GCC-PHAT", "Dual-Mic"],
+    summary: "Causal DSP-Neural Hybrid Active Noise Cancellation system engineered for mission-critical and defense speech enhancement under severe acoustic conditions.",
+    problem: "Defense and smart vehicle cockpits face intense, non-stationary acoustic noise that overwhelms classical filters, while generic deep neural networks introduce catastrophic latency violating real-time communication constraints.",
+    solution: "Combines a 3.5cm spaced dual-mic array with classical GCC-PHAT spatial localization to restrict audio capture within a ±45° spatial cone using two-frame hysteresis. The isolated speech stream is filtered causally by an INT8-quantized DeepFilterNet3 neural stage on Jetson Orin before iSTFT reconstruction.",
+    pipeline: ["Dual-Mic Array (3.5cm)", "STFT Domain", "GCC-PHAT Spatial Gate (±45°)", "DeepFilterNet3 (INT8)", "iSTFT Synthesis"],
+    metrics: [
+      { val: "12.5 ms", lbl: "Latency" },
+      { val: "+16 dB", lbl: "SNR Gain" },
+      { val: "≥ 2.8", lbl: "Target PESQ" },
+      { val: "≥ 0.88", lbl: "Target STOI" },
+      { val: "~2.1M", lbl: "Parameters" },
+      { val: "< 2.0", lbl: "GMACs" }
+    ],
+    technologies: ["DSP", "DeepFilterNet3", "Jetson Orin", "GCC-PHAT", "INT8 Causal AI", "Python / C++"]
+  },
+  {
+    id: 2,
+    num: "PROJECT 02",
+    title: "Drift-Sense",
+    subtitle: "Classical CV Semiconductor FinFET Pattern Localization",
+    category: "Computer Vision • Semiconductor Metrology",
+    context: "Semiconductor Hackathon | Pure Classical CV Baseline",
+    tags: ["No Deep Learning", "Sub-Pixel ZNCC", "FinFET Metrology", "SciPy"],
+    summary: "Sub-pixel accurate classical computer-vision algorithm for template pattern localization in semiconductor FinFET inspection images without deep learning weights.",
+    problem: "High-density FinFET SEM inspection suffers from periodic repetitive transistor structures, nano-scale drift, and sensor noise where black-box neural networks hallucinate or fail precision thresholds.",
+    solution: "Pure classical CV pipeline utilizing FFT-domain ZNCC with conditional Top-2 sharpness verification. When top-2 scale candidates' correlation scores are within 0.015, ties are broken via 3×3 peak sharpness. Peak locations are refined to sub-pixel accuracy via parabolic interpolation.",
+    pipeline: ["Reference Template", "FFT-Domain ZNCC", "Top-2 Sharpness Verification", "Morphological NMS", "Parabolic Sub-Pixel Fit"],
+    metrics: [
+      { val: "1.06 px", lbl: "Mean Error" },
+      { val: "100%", lbl: "≤ 5px Accuracy" },
+      { val: "203/203", lbl: "Unit Tests Passed" },
+      { val: "~540 ms", lbl: "Inference Time" }
+    ],
+    technologies: ["Python", "NumPy", "OpenCV", "SciPy", "Fourier Analysis", "Classical CV"]
+  },
+  {
+    id: 3,
+    num: "PROJECT 03",
+    title: "VCA-BJT6",
+    subtitle: "Volumetric Compute Architecture 6-Terminal BJT",
+    category: "Semiconductor Invention • Analog IC Design",
+    context: "Patent Disclosure Drafted | IP India Filing Planned",
+    tags: ["Invention", "6-Terminal", "AlN Ceramic", "Die Area Reduction"],
+    summary: "Novel 6-terminal semiconductor device architecture featuring vertically stacked BJT structures for volumetric integrated circuit density.",
+    problem: "Planar 2D transistor scaling limits and increasing silicon die footprints restrict high-density analog compute matrix multiplication and multi-state switching circuits.",
+    solution: "Two vertically stacked BJT structures separated by an ultra-thin Aluminum Nitride (AlN) ceramic interlayer providing electrical isolation and superior thermal conductivity. Enables ~50% die-area reduction and 5 distinct operating modes from a single physical monolith.",
+    pipeline: ["Upper BJT Layer", "AlN Ceramic Interlayer", "Lower BJT Layer", "6-Terminal Contact Grid", "5 Configurable Modes"],
+    metrics: [
+      { val: "~50%", lbl: "Die Area Reduction" },
+      { val: "5", lbl: "Operating Modes" },
+      { val: "6", lbl: "Active Terminals" },
+      { val: "Patent", lbl: "Disclosure Stage" }
+    ],
+    technologies: ["Semiconductor Physics", "Analog IC Design", "AlN Ceramics", "Device Modeling", "BJT Architecture"]
+  },
+  {
+    id: 4,
+    num: "PROJECT 04",
+    title: "Kavach",
+    subtitle: "Physics-Informed TFT for GEO Radiation Forecasting",
+    category: "Space Weather • Deep Learning • Aerospace",
+    context: "ISRO Bharatiya Antariksh Hackathon 2026 | Problem Statement 14",
+    tags: ["ISRO BAH 2026", "PS14", "Temporal Fusion Transformer", "GEO Orbit"],
+    summary: "Physics-informed deep time-series forecasting model protecting satellite electronics in geostationary orbit from energetic electron radiation flux.",
+    problem: "Solar coronal mass ejections and geomagnetic storms inject lethal relativistic electrons into GEO orbit, causing deep dielectric charging and catastrophic satellite bus failures.",
+    solution: "Combines magnetospheric physics priors with a Temporal Fusion Transformer (TFT). Features a novel India-longitude transfer learning layer to calibrate global solar wind predictions specifically for Indian geostationary orbital slots.",
+    pipeline: ["Solar Wind Sensors", "Physics Priors", "Temporal Fusion Transformer", "India-Longitude Transfer Layer", "Radiation Warning"],
+    metrics: [
+      { val: "PS14", lbl: "ISRO BAH 2026" },
+      { val: "GEO", lbl: "Orbit Protection" },
+      { val: "10 Slides", lbl: "Delivered Deck" },
+      { val: "Novel", lbl: "Longitude Layer" }
+    ],
+    technologies: ["PyTorch", "Temporal Fusion Transformer", "Space Weather Physics", "Time-Series", "Transfer Learning"]
+  },
+  {
+    id: 5,
+    num: "PROJECT 05",
+    title: "Gold Authenticity System",
+    subtitle: "Edge-Computing Multi-Modal Gold Purity Testing Device",
+    category: "Embedded Sensor Fusion • TinyML • FinTech Hardware",
+    context: "CIT Project-Based Learning | Team of 2 (with Rajapriyan R) | Mentor: Ms. S. Buela",
+    tags: ["ESP32-CAM", "Eddy Current", "HX711", "TinyML On-Device", "Zero Cloud"],
+    summary: "Handheld, non-destructive multi-modal gold purity verification device powered by on-device TinyML sensor fusion.",
+    problem: "Traditional gold purity testing relies on corrosive acid scratch tests or expensive desktop XRF machines inaccessible to rural artisans, pawn brokers, and consumers.",
+    solution: "Fuses three non-destructive sensing modalities on a custom ESP32 board: eddy current coil testing (conductivity), HX711 load cell (precision density weight), and ESP32-CAM (optical hallmark inspection). An on-device TinyML classifier delivers an instant authenticity verdict with zero cloud latency.",
+    pipeline: ["Eddy Current Sensor", "HX711 Load Cell", "ESP32-CAM Vision", "On-Device TinyML Fusion", "Instant Purity Verdict"],
+    metrics: [
+      { val: "3", lbl: "Fused Modalities" },
+      { val: "0 ms", lbl: "Cloud Latency" },
+      { val: "5 kg", lbl: "Load Precision" },
+      { val: "100%", lbl: "Non-Destructive" }
+    ],
+    technologies: ["ESP32-CAM", "TinyML", "Eddy Current Testing", "HX711", "ADS1115", "Custom PCB"]
+  },
+  {
+    id: 6,
+    num: "PROJECT 06",
+    title: "FloodGuard AI",
+    subtitle: "Multi-Sensor Flood Hazard Monitoring & Wildlife Deterrence",
+    category: "Computer Vision • Environmental IoT • Edge AI",
+    context: "Proposal Rating: 9.7/10 | Targeted at KPIT Sparkle & ISRO BAH",
+    tags: ["Raspberry Pi 5", "YOLOv8n", "ESP32", "LTE / GPS", "Wildlife Deterrence"],
+    summary: "Autonomous environmental edge surveillance station combining river flood surge telemetry with real-time AI wildlife detection and non-lethal deterrence.",
+    problem: "Rural river catchments experience rapid flash floods that destroy monitoring equipment due to wild animal intrusion and severe weather isolation.",
+    solution: "Dual-compute architecture pairing a Raspberry Pi 5 running YOLOv8n object detection with an ESP32 sensor node. Simultaneously measures hydrological rise and identifies approaching wildlife, triggering acoustic/light deterrence while transmitting emergency packets via LTE/GPS.",
+    pipeline: ["Hydrological Sensors", "RPi 5 + YOLOv8n", "Wildlife Classification", "Acoustic Deterrence", "LTE / GPS Uplink"],
+    metrics: [
+      { val: "9.7 / 10", lbl: "Proposal Rating" },
+      { val: "YOLOv8n", lbl: "Vision Model" },
+      { val: "Dual", lbl: "Flood + Wildlife" },
+      { val: "LTE/GPS", lbl: "Remote Comms" }
+    ],
+    technologies: ["Raspberry Pi 5", "YOLOv8n", "ESP32", "LTE / GPS", "OpenCV", "Embedded Linux"]
+  },
+  {
+    id: 7,
+    num: "PROJECT 07",
+    title: "LoomSense AI",
+    subtitle: "AIoT Real-Time Anomaly Detection for Handloom Weavers",
+    category: "AIoT • Unsupervised ML • Artisan Technology",
+    context: "Positioned for MSME National Innovation Challenges",
+    tags: ["ESP32", "MPU6050", "Unsupervised ML", "Offline-First", "BLE Sync"],
+    summary: "Retrofit AIoT sensor kit for traditional handloom artisans detecting thread breakages and mechanical reed faults in real time.",
+    problem: "Traditional handloom silk and cotton weavers suffer catastrophic income loss when unnoticed broken warp threads ruin meters of woven fabric.",
+    solution: "An ESP32 node with an MPU6050 accelerometer clamped to the loom sley. Employs unsupervised TinyML anomaly detection to learn the weaver's natural beat-up cadence, instantly sounding an alarm upon rhythm deviation without requiring labeled fault datasets.",
+    pipeline: ["Sley MPU6050 Accelerometer", "Kinematic Filtering", "Unsupervised Cadence Model", "Audible / Visual Alarm", "Offline BLE Sync"],
+    metrics: [
+      { val: "100%", lbl: "Offline Capability" },
+      { val: "Zero", lbl: "Labeled Data Needed" },
+      { val: "BLE", lbl: "Batch Sync" },
+      { val: "Retrofit", lbl: "Universal Clamp" }
+    ],
+    technologies: ["ESP32", "MPU6050", "Unsupervised TinyML", "BLE", "Digital Signal Processing"]
+  },
+  {
+    id: 8,
+    num: "PROJECT 08",
+    title: "ThermoSense",
+    subtitle: "Self-Powered Data Center Thermal Monitor via Waste Heat",
+    category: "Energy Harvesting • Sustainable IoT • Green Computing",
+    context: "Submitted to IIT Bombay Sustainability Hackathon",
+    tags: ["TEG Harvester", "IIT Bombay", "Supercapacitor", "Zero Batteries"],
+    summary: "Self-powered data center thermal monitoring node running indefinitely on harvested server exhaust waste heat.",
+    problem: "Hyper-scale data center server racks generate enormous parasitic heat, requiring hundreds of battery-powered IoT temperature sensors with high chemical waste and maintenance costs.",
+    solution: "Utilizes Thermoelectric Generators (TEG) exploiting the thermal gradient between hot server exhaust and cold aisle air. Regulates power through ultra-low-leakage supercapacitors to power an autonomous telemetry node with zero external electricity or chemical batteries.",
+    pipeline: ["Exhaust Heat Gradient", "Seebeck TEG Harvester", "Power Conditioning", "Supercapacitor Bank", "Wireless Telemetry"],
+    metrics: [
+      { val: "0 W", lbl: "External Power" },
+      { val: "100%", lbl: "Self-Sustaining" },
+      { val: "TEG", lbl: "Waste Heat Harvester" },
+      { val: "Finalist", lbl: "IIT Bombay" }
+    ],
+    technologies: ["Thermoelectric Generation", "Energy Harvesting", "Power Management", "Supercapacitors", "IoT Sensors"]
+  },
+  {
+    id: 9,
+    num: "PROJECT 09",
+    title: "Door-Zone Alert System",
+    subtitle: "Acoustic-PIR Fusion Dooring-Accident Prevention Retrofit",
+    category: "Acoustic DSP • Sensor Fusion • Road Safety",
+    context: "Engineered for Commercial Fleets, Autos, Vans & Older Cars",
+    tags: ["MEMS FFT", "PIR Fusion", "ESP32", "Zero Radar", "Low-Cost Safety"],
+    summary: "Low-cost acoustic and motion sensor fusion retrofit warning vehicle occupants of approaching cyclists and vehicles before opening doors.",
+    problem: "Dooring accidents cause severe cyclist fatalities in congested cities, yet commercial radar/camera blind-spot systems are unaffordable for autos, vans, and older commercial vehicles.",
+    solution: "Replaces costly radar with dual MEMS microphones running real-time FFT spectral ratio analysis (detecting vehicle approach signatures) paired with PIR motion sensing (catching silent cyclists/pedestrians). Multi-frame confirmation prevents false alarms.",
+    pipeline: ["Dual MEMS Mic Array", "Real-Time FFT Spectral Ratio", "PIR Motion Validation", "Tiered Fusion Logic", "Cabin Warning / Lock"],
+    metrics: [
+      { val: "< ₹1,500", lbl: "Target BOM" },
+      { val: "0", lbl: "Radars Needed" },
+      { val: "Dual", lbl: "Acoustic + PIR" },
+      { val: "Real-Time", lbl: "FFT Spectral Ratio" }
+    ],
+    technologies: ["ESP32", "MEMS Microphones", "Real-Time FFT", "PIR Sensors", "Sensor Fusion", "DSP"]
+  },
+  {
+    id: 10,
+    num: "PROJECT 10",
+    title: "Menstrual Health Monitor",
+    subtitle: "Personalized ML Baseline Multi-Sensor Wearable",
+    category: "Wearable HealthTech • Personalized ML • Biomedical",
+    context: "Developed for HealthTech Innovation Hackathons",
+    tags: ["ESP32 Wearable", "Personalized ML", "Tiered Alerts", "Biomedical"],
+    summary: "Multi-sensor biometric wearable tracking menstrual cycle health through an adaptive, personalized machine learning baseline.",
+    problem: "Commercial menstrual tracking apps rely on generic 28-day population averages that fail individuals with cycle irregularities, PCOS, or hormonal variations.",
+    solution: "A comfortable wearable module driven by an ESP32 capturing continuous skin temperature, galvanic skin response, and PPG pulse metrics. Builds a personalized ML baseline adapting dynamically to the user's specific physiological patterns, triggering tiered early-symptom alerts.",
+    pipeline: ["Multi-Sensor Biometrics", "Baseline Feature Extraction", "Adaptive ML Model", "Trend Deviation Detector", "Tiered Mobile Notification"],
+    metrics: [
+      { val: "Personal", lbl: "Adaptive Baseline" },
+      { val: "Tiered", lbl: "Severity Alerts" },
+      { val: "ESP32", lbl: "Wearable Core" },
+      { val: "Multi", lbl: "Sensor Modalities" }
+    ],
+    technologies: ["ESP32", "Biomedical Sensors", "Personalized ML", "Embedded C++", "Signal Processing"]
+  },
+  {
+    id: 11,
+    num: "PROJECT 11",
+    title: "CubeSat Telemetry Recovery",
+    subtitle: "Physics-Informed AI-Assisted Telemetry Recovery for CubeSats",
+    category: "Aerospace Communications • Fault-Tolerant AI • Spacecraft",
+    context: "Research Paper: 'Physics-Informed AI-Assisted Telemetry Recovery for Radiation-Resilient CubeSat Communication Systems'",
+    tags: ["Research Paper", "LDPC Decoding", "Physics Constraints", "CubeSat Radiation"],
+    summary: "Hybrid fault-tolerant telemetry recovery framework combining LDPC channel decoding with physics-informed AI reconstruction for space radiation environments.",
+    problem: "Single Event Upsets (SEUs) from cosmic radiation cause multi-byte burst packet corruption in CubeSat downlinks, exceeding classical error correction capabilities.",
+    solution: "Standard LDPC decoding runs as the first line of defense; if frame decoding fails or violates orbital physics conservation laws, a physics-informed AI reconstructs corrupted telemetry values using spatial correlation and orbital dynamics, providing a confidence score and integrity flag.",
+    pipeline: ["Corrupted Downlink Frame", "LDPC Decoding", "Physics-Consistency Check", "Physics-Informed AI Reconstruction", "Confidence & Integrity Flag"],
+    metrics: [
+      { val: "Hybrid", lbl: "LDPC + Physics-AI" },
+      { val: "Integrity", lbl: "Flagged Estimations" },
+      { val: "SEU", lbl: "Radiation Resilient" },
+      { val: "Paper", lbl: "Research Scope" }
+    ],
+    technologies: ["LDPC Error Correction", "Physics-Informed Neural Networks", "CubeSat Dynamics", "Python", "Simulink"]
+  },
+  {
+    id: 12,
+    num: "PROJECT 12",
+    title: "RISC-V + STM32 Drone Telemetry",
+    subtitle: "Heterogeneous Multi-MCU Avionics Telemetry Processing",
+    category: "Embedded Avionics • Heterogeneous Computing • Drone Systems",
+    context: "Under Active Development for IEEE Conference Publication",
+    tags: ["IEEE Paper In Progress", "RISC-V", "STM32", "High-Speed SPI", "UAV"],
+    summary: "Heterogeneous dual-microcontroller avionics telemetry architecture splitting sensor acquisition from flight compute.",
+    problem: "Single-core UAV flight controllers encounter scheduler jitter when handling high-frequency sensor interrupts while simultaneously computing telemetry packet encoding and downlink streams.",
+    solution: "Assigns high-rate sensor sampling to a dedicated RISC-V microcontroller, streaming packetized buffers via high-speed DMA SPI to an STM32 ARM Cortex-M controller for telemetry compression, navigation filtering, and wireless broadcast.",
+    pipeline: ["Sensory Hardware Array", "RISC-V Acquisition MCU", "High-Speed DMA SPI", "STM32 Processing Core", "Avionics Telemetry Uplink"],
+    metrics: [
+      { val: "Dual MCU", lbl: "Heterogeneous Architecture" },
+      { val: "0 Jitter", lbl: "Dedicated RISC-V Sampling" },
+      { val: "SPI DMA", lbl: "Inter-Core Bus" },
+      { val: "IEEE", lbl: "Paper In Progress" }
+    ],
+    technologies: ["RISC-V", "STM32 (ARM Cortex-M)", "High-Speed SPI", "DMA", "Bare-Metal C", "RTOS"]
+  },
+  {
+    id: 13,
+    num: "PROJECT 13",
+    title: "MCB Trip Test Prototype",
+    subtitle: "Scaled Safe Industrial Current-Trip Verification Station",
+    category: "Industrial Automation • Electrical Safety • Instrumentation",
+    context: "Safe Scaled Laboratory Prototype for Circuit Breaker Diagnostics",
+    tags: ["Safe Scaled Prototype", "ESP32 Controller", "Current Ramp", "Live Dashboard"],
+    summary: "Safe, low-voltage ESP32 bench prototype replicating industrial PLC circuit breaker trip-curve calibration.",
+    problem: "Validating industrial Miniature Circuit Breaker (MCB) thermal and magnetic trip curves traditionally requires hazardous high-voltage mains and expensive industrial PLCs.",
+    solution: "A safe, scaled-voltage bench testing station controlled by an ESP32. Regulates a closed-loop programmable current source through the test breaker, recording millisecond trip response times and transmitting live trip-curve diagnostics to a telemetry dashboard.",
+    pipeline: ["Programmable Current Source", "MCB Test Specimen", "Current / Voltage Sensing", "ESP32 Trip Detector", "Live Telemetry Dashboard"],
+    metrics: [
+      { val: "Low Voltage", lbl: "Safe Scaled Bench" },
+      { val: "Real-Time", lbl: "Current Profiling" },
+      { val: "Dashboard", lbl: "Live Diagnostics" },
+      { val: "PLC Alternative", lbl: "Cost-Effective" }
+    ],
+    technologies: ["ESP32", "Current Sensing (Hall / Shunt)", "PWM Current Drive", "WebSockets", "Electrical Safety"]
+  },
+  {
+    id: 14,
+    num: "PROJECT 14",
+    title: "Bike Smart Safety System",
+    subtitle: "Low-Cost Two-Wheeler Emergency & Anti-Collision Node",
+    category: "Vehicle IoT • Embedded Electronics • Rider Safety",
+    context: "Schematics Finalized | Low-Cost Build Budget: ₹2,000–₹4,000",
+    tags: ["ESP32-Only", "₹2,000–4,000 Budget", "Accident Detection", "Circuit Done"],
+    summary: "Self-contained ESP32 motorcycle smart safety add-on providing crash telemetry and emergency distress broadcasting.",
+    problem: "Motorcyclists in developing countries suffer from late emergency dispatch following highway crashes, while commercial emergency call accessories cost more than commuter bikes themselves.",
+    solution: "An ESP32-only smart safety module with completed circuit schematics and a strictly capped ₹2,000–4,000 component budget. Fuses IMU crash/tilt kinematics with proximity sensors, firing audio-visual warnings and dispatching automated GPS emergency beacons.",
+    pipeline: ["IMU Tilt & Impact", "Proximity Sensing", "ESP32 Core Logic", "Audio-Visual Alert", "Cellular SOS Dispatch"],
+    metrics: [
+      { val: "₹2k–4k", lbl: "Component Budget" },
+      { val: "ESP32", lbl: "Single MCU Design" },
+      { val: "Finalized", lbl: "Circuit Schematics" },
+      { val: "Zero Delay", lbl: "Impact Triggering" }
+    ],
+    technologies: ["ESP32", "IMU Kinematics", "Automotive Power Regulation", "Hardware Schematics", "IoT"]
+  },
+  {
+    id: 15,
+    num: "PROJECT 15",
+    title: "Jarvis AI",
+    subtitle: "Voice-Controlled Desktop AI Assistant with Local LLMs",
+    category: "Applied AI • Desktop Automation • Multimodal LLMs",
+    context: "Personal Workspace Automation System | Continuous Iteration",
+    tags: ["Ollama (LLaMA3/LLaVA)", "PyAutoGUI", "Speech Recognition", "Zero Cloud"],
+    summary: "Voice-activated desktop autonomous agent combining local LLaMA3 / LLaVA models with OS GUI automation.",
+    problem: "Cloud-based voice assistants suffer latency, privacy risks, and lack granular control over developer desktop applications and terminal workflows.",
+    solution: "An autonomous desktop assistant written in Python. Integrates low-latency voice capture with local Ollama models (LLaMA3 for text reasoning, LLaVA for on-screen visual inspection) and PyAutoGUI for complete OS, terminal, and workspace automation.",
+    pipeline: ["Microphone Voice Stream", "Speech-to-Text Engine", "Local LLM (LLaMA3 / LLaVA)", "PyAutoGUI OS Execution", "Synthesized Feedback"],
+    metrics: [
+      { val: "100%", lbl: "Local Private Inference" },
+      { val: "Multimodal", lbl: "LLaMA3 + LLaVA" },
+      { val: "OS-Level", lbl: "Automated Control" },
+      { val: "Iterated", lbl: "Multi-Version Maturity" }
+    ],
+    technologies: ["Python", "Ollama", "LLaMA3", "LLaVA", "PyAutoGUI", "SpeechRecognition", "Computer Vision"]
+  }
+];
+/* ============================================================
+   2. CONFIGURATION & STATE (Strict Separation of Concerns)
+============================================================ */
+const DEBUG_VIDEO     = false; // Set to true to display developer HUD
+const TRANSITION_MS   = 650;   // UI animation duration
+const UNLOCK_DELAY    = 700;   // Strict gesture cooldown / transition lock
+
+// Configurable base slide video timeline (Dynamic mapping validated at runtime)
+let slideVideoTimes = [
+  0.0,
+  1.0,
+  2.0,
+  3.0,
+  4.0,
+  5.0,
+  6.0,
+  7.0,
+  8.0,
+  9.0
+];
+
+/* ============================================================
+   3. DOM REFERENCES & STATE ARCHITECTURE
+============================================================ */
+const video        = document.getElementById('bg-video');
+const loadEl       = document.getElementById('loading');
+const loaderFill   = document.getElementById('loader-fill');
+const sideNavEl    = document.getElementById('side-nav');
+const counterEl    = document.getElementById('slide-counter');
+const slideEls     = Array.from(document.querySelectorAll('.slide'));
+const navLinks     = Array.from(document.querySelectorAll('#nav a'));
+const projectsGrid = document.getElementById('projects-grid');
+const projectsArea = document.getElementById('projects-scroll-area');
+
+// Developer HUD elements
+const debugHudEl   = document.getElementById('debug-hud');
+const debugSlideEl = document.getElementById('debug-slide');
+const debugVideoEl = document.getElementById('debug-video');
+const debugTargetEl= document.getElementById('debug-target');
+const debugStateEl = document.getElementById('debug-state');
+const debugFpsEl   = document.getElementById('debug-fps');
+
+// State Architecture: Slide State Machine
+let currentSlide        = 0;
+let targetSlide         = 0;
+let isTransitioning     = false;
+let expandedCardId      = null;
+
+// Video Animation & Seek Scheduler State
+let currentVideoTime    = 0.0;
+let targetVideoTime     = 0.0;
+let startVideoTime      = 0.0;
+let requestedTime       = 0.0;
+let seekInProgress      = false;
+let lastSeekTimestamp   = 0;
+let transitionStartTime = 0;
+let lastPresentedMediaTime = 0.0;
+
+// Dynamic Timeline Validation (Validates against actual DOM slide count and video duration)
+function validateSlideVideoTimes() {
+  const count = slideEls.length;
+  // Detected duration dynamically; final slide must map to 9.0s (or video.duration)
+  const maxTime = (video.duration && !isNaN(video.duration) && video.duration > 0)
+    ? Math.min(video.duration, 9.0)
+    : 9.0;
+
+  if (slideVideoTimes.length !== count) {
+    slideVideoTimes = [];
+    for (let i = 0; i < count; i++) {
+      slideVideoTimes.push(Number(((i / (count - 1)) * maxTime).toFixed(2)));
+    }
+  } else {
+    slideVideoTimes[slideVideoTimes.length - 1] = maxTime;
+  }
+}
+
+/* ============================================================
+   4. EASING CURVE & NON-BLOCKING SEEK SCHEDULER
+============================================================ */
+// Smooth cinematic cubic acceleration & deceleration
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// Discards old intermediate requests; only the latest target matters
+function scheduleSeek() {
+  if (video.readyState < 2) return; // HAVE_CURRENT_DATA or higher
+
+  // If a seek is currently in flight in the browser decoder, do NOT flood it!
+  if (seekInProgress || video.seeking) {
+    // Watchdog fallback: in case decoder seeked event is delayed (> 200ms)
+    if (performance.now() - lastSeekTimestamp > 200) {
+      seekInProgress = false;
+    } else {
+      return; // Old intermediate requests are discarded cleanly
+    }
+  }
+
+  // Only issue a seek if the timestamp delta is visually meaningful (>= 20ms)
+  const diff = Math.abs(requestedTime - video.currentTime);
+  if (diff >= 0.02) {
+    seekInProgress = true;
+    lastSeekTimestamp = performance.now();
+    try {
+      video.currentTime = requestedTime;
+      currentVideoTime = requestedTime;
+    } catch (e) {
+      seekInProgress = false;
+    }
+  }
+}
+
+// When browser decoder finishes seeking the frame:
+video.addEventListener('seeked', () => {
+  seekInProgress = false;
+  currentVideoTime = video.currentTime;
+
+  // If the target moved during the previous seek, immediately service the latest requested target:
+  if (isTransitioning) {
+    const diff = Math.abs(requestedTime - video.currentTime);
+    if (diff >= 0.02) {
+      seekInProgress = true;
+      lastSeekTimestamp = performance.now();
+      try {
+        video.currentTime = requestedTime;
+        currentVideoTime = requestedTime;
+      } catch (e) {
+        seekInProgress = false;
+      }
+    }
+  }
+});
+
+// Hardware frame sync using requestVideoFrameCallback when available
+if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+  const onVideoFramePresented = (now, metadata) => {
+    lastPresentedMediaTime = metadata.mediaTime;
+    video.requestVideoFrameCallback(onVideoFramePresented);
+  };
+  video.requestVideoFrameCallback(onVideoFramePresented);
+}
+
+// Update the timeline interpolation during active transitions
+function updateVideoAnimation(now) {
+  if (!isTransitioning) return;
+
+  const elapsed = now - transitionStartTime;
+  const progress = Math.min(elapsed / TRANSITION_MS, 1.0);
+  const eased = easeInOutCubic(progress);
+
+  requestedTime = startVideoTime + (targetVideoTime - startVideoTime) * eased;
+
+  if (progress >= 1.0) {
+    requestedTime = targetVideoTime;
+  }
+}
+
+/* ============================================================
+   5. RENDER ALL 15 PROJECTS DYNAMICALLY
+============================================================ */
+function renderProjects() {
+  projectsGrid.innerHTML = '';
+
+  projects.forEach((p) => {
+    const card = document.createElement('div');
+    card.className = 'project-card';
+    card.id = `project-card-${p.id}`;
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-expanded', 'false');
+    card.setAttribute('aria-label', `${p.title} - ${p.subtitle}`);
+
+    const chipsHtml = p.tags.slice(0, 4).map(t => `<span class="tech-tag-chip">${t}</span>`).join('');
+
+    const pipelineHtml = p.pipeline.map((step, i) => {
+      const isLast = i === p.pipeline.length - 1;
+      return `<span class="pipe-step-box">${step}</span>${!isLast ? '<span class="pipe-arrow">→</span>' : ''}`;
+    }).join('');
+
+    const metricsHtml = p.metrics.map(m => `
+      <div class="metric-card">
+        <div class="metric-val">${m.val}</div>
+        <div class="metric-lbl">${m.lbl}</div>
+      </div>
+    `).join('');
+
+    const techBadgesHtml = p.technologies.map(t => `<span class="exp-chip">${t}</span>`).join('');
+
+    card.innerHTML = `
+      <div class="card-header-row">
+        <span class="card-num-badge">${p.num}</span>
+        <span class="card-cat-tag">${p.category}</span>
+        <button class="btn-card-close" type="button" aria-label="Close project details">× CLOSE</button>
+      </div>
+
+      <div class="card-title">${p.title}</div>
+      <div class="card-subtitle">${p.subtitle}</div>
+
+      <div class="card-chips-row">${chipsHtml}</div>
+
+      <div class="card-footer-action">
+        <span>VIEW FULL SPECIFICATIONS</span>
+        <span class="action-arrow">→</span>
+      </div>
+
+      <div class="card-expanded-body">
+        <div class="card-expanded-inner">
+          <div class="exp-context-badge">${p.context}</div>
+
+          <div class="exp-section-title">PROJECT OVERVIEW</div>
+          <p class="exp-text">${p.summary}</p>
+
+          <div class="exp-section-title">THE PROBLEM</div>
+          <p class="exp-text">${p.problem}</p>
+
+          <div class="exp-section-title">SOLUTION & APPROACH</div>
+          <p class="exp-text">${p.solution}</p>
+
+          <div class="exp-section-title">PIPELINE ARCHITECTURE</div>
+          <div class="pipeline-flow">${pipelineHtml}</div>
+
+          <div class="exp-section-title">RESULTS & BENCHMARKS</div>
+          <div class="metrics-grid">${metricsHtml}</div>
+
+          <div class="exp-section-title">TECHNOLOGY STACK</div>
+          <div class="exp-tech-chips">${techBadgesHtml}</div>
+        </div>
+      </div>
+    `;
+
+    card.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevents slide navigation
+      if (e.target.closest('.btn-card-close')) {
+        toggleProjectCard(p.id, false);
+        return;
+      }
+      toggleProjectCard(p.id, !card.classList.contains('expanded'));
+    });
+
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleProjectCard(p.id, !card.classList.contains('expanded'));
+      }
+    });
+
+    projectsGrid.appendChild(card);
+  });
+}
+
+function toggleProjectCard(projectId, open) {
+  const targetCard = document.getElementById(`project-card-${projectId}`);
+  if (!targetCard) return;
+
+  if (expandedCardId !== null && expandedCardId !== projectId) {
+    const prevCard = document.getElementById(`project-card-${expandedCardId}`);
+    if (prevCard) {
+      prevCard.classList.remove('expanded');
+      prevCard.setAttribute('aria-expanded', 'false');
+    }
+    expandedCardId = null;
+  }
+
+  if (open) {
+    targetCard.classList.add('expanded');
+    targetCard.setAttribute('aria-expanded', 'true');
+    expandedCardId = projectId;
+
+    setTimeout(() => {
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 120);
+  } else {
+    targetCard.classList.remove('expanded');
+    targetCard.setAttribute('aria-expanded', 'false');
+    expandedCardId = null;
+  }
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && expandedCardId !== null) {
+    toggleProjectCard(expandedCardId, false);
+  }
+});
+
+/* ============================================================
+   6. SIDE NAVIGATION DOTS & INDICATORS
+============================================================ */
+const dots = [];
+function initSideNav() {
+  sideNavEl.innerHTML = '';
+  dots.length = 0;
+  for (let i = 0; i < slideEls.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    d.title = `Slide ${i + 1}`;
+    d.addEventListener('click', () => goToSlide(i));
+    sideNavEl.appendChild(d);
+    dots.push(d);
+  }
+}
+
+function updateNavIndicators(activeIdx = currentSlide) {
+  dots.forEach((d, i) => d.classList.toggle('active', i === activeIdx));
+  counterEl.textContent =
+    String(activeIdx + 1).padStart(2, '0') + ' / ' +
+    String(slideEls.length).padStart(2, '0');
+
+  navLinks.forEach(link => {
+    if (link && link.dataset && link.dataset.slide !== undefined) {
+      const s = parseInt(link.dataset.slide, 10);
+      link.classList.toggle('active', s === activeIdx);
+    }
+  });
+}
+
+/* ============================================================
+   7. SLIDE TRANSITION ENGINE (State Machine)
+============================================================ */
+function goToSlide(newIdx) {
+  if (isTransitioning) return;
+  if (newIdx === currentSlide) return;
+  if (newIdx < 0 || newIdx >= slideEls.length) return;
+
+  isTransitioning = true;
+  targetSlide = newIdx;
+
+  const dir   = newIdx > currentSlide ? 1 : -1;
+  const oldEl = slideEls[currentSlide];
+  const newEl = slideEls[newIdx];
+
+  // Collapse project card if leaving Slide 4
+  if (currentSlide === 3 && expandedCardId !== null) {
+    toggleProjectCard(expandedCardId, false);
+  }
+
+  // Setup hardware-accelerated UI slide transition
+  newEl.style.transition = 'none';
+  newEl.style.opacity    = '0';
+  newEl.style.visibility = 'visible';
+  newEl.style.transform  = dir > 0 ? 'translateY(40px)' : 'translateY(-40px)';
+
+  // Force single reflow
+  void newEl.offsetHeight;
+
+  newEl.style.transition = 'opacity 500ms ease, transform 600ms cubic-bezier(.22, 1, .36, 1)';
+
+  oldEl.classList.remove('active');
+  oldEl.classList.add(dir > 0 ? 'exit-up' : 'exit-down');
+
+  requestAnimationFrame(() => {
+    newEl.style.opacity   = '';
+    newEl.style.transform = '';
+    newEl.classList.add('active');
+  });
+
+  // Setup smooth video animation parameters
+  startVideoTime = video.currentTime;
+  targetVideoTime = slideVideoTimes[newIdx];
+  transitionStartTime = performance.now();
+  requestedTime = startVideoTime;
+
+  updateNavIndicators(newIdx);
+
+  // Transition completion lock (UNLOCK_DELAY ms)
+  setTimeout(() => {
+    oldEl.classList.remove('exit-up', 'exit-down');
+    oldEl.style.visibility = '';
+    currentSlide = newIdx;
+    isTransitioning = false;
+    requestedTime = targetVideoTime;
+    scheduleSeek();
+  }, UNLOCK_DELAY);
+}
+
+const nextSlide = () => goToSlide(currentSlide + 1);
+const prevSlide = () => goToSlide(currentSlide - 1);
+
+/* ============================================================
+   8. INPUT GESTURES (Wheel, Touch, Keyboard)
+============================================================ */
+let lastWheelTime = 0;
+
+window.addEventListener('wheel', (e) => {
+  // Guard for Slide 4 projects scroll
+  if (currentSlide === 3 && projectsArea && projectsArea.contains(e.target)) {
+    if (expandedCardId !== null) return;
+
+    const atTop = projectsArea.scrollTop <= 4;
+    const atBottom = projectsArea.scrollTop + projectsArea.clientHeight >= projectsArea.scrollHeight - 6;
+
+    if (e.deltaY < -15 && atTop && !isTransitioning) {
+      e.preventDefault();
+      prevSlide();
+      return;
+    }
+    if (e.deltaY > 15 && atBottom && !isTransitioning) {
+      e.preventDefault();
+      nextSlide();
+      return;
+    }
+    return;
+  }
+
+  e.preventDefault();
+
+  if (isTransitioning) return;
+
+  const now = performance.now();
+  if (now - lastWheelTime < UNLOCK_DELAY) return;
+
+  if (Math.abs(e.deltaY) < 15) return;
+
+  // STRICT DIRECTION CLAMP: Large deltas move exactly ONE slide
+  const dir = e.deltaY > 0 ? 1 : -1;
+  lastWheelTime = now;
+
+  dir > 0 ? nextSlide() : prevSlide();
+}, { passive: false });
+
+let touchY0 = 0, touchX0 = 0;
+const SWIPE_MIN = 45;
+
+window.addEventListener('touchstart', e => {
+  touchY0 = e.touches[0].clientY;
+  touchX0 = e.touches[0].clientX;
+}, { passive: true });
+
+window.addEventListener('touchend', e => {
+  if (isTransitioning) return;
+
+  if (currentSlide === 3 && projectsArea && projectsArea.contains(e.target) && expandedCardId !== null) {
+    return;
+  }
+
+  const dy = touchY0 - e.changedTouches[0].clientY;
+  const dx = Math.abs(touchX0 - e.changedTouches[0].clientX);
+
+  if (Math.abs(dy) < SWIPE_MIN || dx > Math.abs(dy) * 0.8) return;
+
+  dy > 0 ? nextSlide() : prevSlide();
+}, { passive: true });
+
+window.addEventListener('keydown', e => {
+  if (isTransitioning) return;
+
+  switch (e.key) {
+    case 'ArrowDown': case 'ArrowRight': case 'PageDown':
+      e.preventDefault(); nextSlide(); break;
+    case 'ArrowUp': case 'ArrowLeft': case 'PageUp':
+      e.preventDefault(); prevSlide(); break;
+    case ' ':
+      if (document.activeElement && (document.activeElement.classList.contains('project-card') || document.activeElement.tagName === 'BUTTON' || document.activeElement.tagName === 'A')) return;
+      e.preventDefault(); nextSlide(); break;
+  }
+});
+
+document.querySelectorAll('[data-slide]').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    goToSlide(parseInt(link.dataset.slide, 10));
+  });
+});
+
+/* ============================================================
+   9. UNIFIED PARTICLE SYSTEM (Zero Separate RAF Loop)
+============================================================ */
+let pCanvas, pCtx, pW, pH;
+const isMobileDevice = window.innerWidth < 768;
+const P_COUNT = isMobileDevice ? 24 : 45;
+let px, py, pvx, pvy, pr, pa, plf, pag;
+
+function initParticles() {
+  pCanvas = document.getElementById('particle-canvas');
+  if (!pCanvas) return;
+  pCtx = pCanvas.getContext('2d');
+
+  function resizeCanvas() {
+    pW = pCanvas.width = window.innerWidth;
+    pH = pCanvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  let rTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(rTimer);
+    rTimer = setTimeout(resizeCanvas, 150);
+  }, { passive: true });
+
+  px = new Float32Array(P_COUNT); py = new Float32Array(P_COUNT);
+  pvx = new Float32Array(P_COUNT); pvy = new Float32Array(P_COUNT);
+  pr = new Float32Array(P_COUNT); pa = new Float32Array(P_COUNT);
+  plf = new Float32Array(P_COUNT); pag = new Float32Array(P_COUNT);
+
+  for (let i = 0; i < P_COUNT; i++) resetParticle(i);
+}
+
+function resetParticle(i) {
+  px[i] = Math.random() * pW;
+  py[i] = Math.random() * pH;
+  pvx[i] = (Math.random() - 0.5) * 0.18;
+  pvy[i] = (Math.random() - 0.5) * 0.18;
+  pr[i] = Math.random() * 1.3 + 0.4;
+  pa[i] = Math.random() * 0.28 + 0.08;
+  plf[i] = Math.random() * 260 + 120;
+  pag[i] = 0;
+}
+
+function renderParticles() {
+  if (!pCtx) return;
+  pCtx.clearRect(0, 0, pW, pH);
+
+  for (let i = 0; i < P_COUNT; i++) {
+    pag[i]++;
+    if (pag[i] > plf[i]) { resetParticle(i); continue; }
+    px[i] += pvx[i];
+    py[i] += pvy[i];
+    const alpha = pa[i] * (1 - pag[i] / plf[i]);
+    pCtx.beginPath();
+    pCtx.arc(px[i], py[i], pr[i], 0, 6.2832);
+    pCtx.fillStyle = `rgba(${particleRgb.r}, ${particleRgb.g}, ${particleRgb.b}, ${alpha.toFixed(3)})`;
+    pCtx.fill();
+  }
+}
+
+/* ============================================================
+   10. CENTRALIZED MASTER ANIMATION LOOP (Single RAF)
+============================================================ */
+let lastFpsTime = 0;
+let frameCount = 0;
+let currentFps = 60;
+
+function masterLoop(timestamp) {
+  // 1. Video animation interpolation & non-blocking seek scheduler
+  updateVideoAnimation(timestamp);
+  scheduleSeek();
+
+  // 2. Render particle system
+  renderParticles();
+
+  // 3. Update debug developer HUD if active
+  if (DEBUG_VIDEO) {
+    frameCount++;
+    if (timestamp - lastFpsTime >= 500) {
+      currentFps = Math.round((frameCount * 1000) / (timestamp - lastFpsTime));
+      frameCount = 0;
+      lastFpsTime = timestamp;
+    }
+    updateDebugHUD();
+  }
+
+  requestAnimationFrame(masterLoop);
+}
+
+function updateDebugHUD() {
+  if (!DEBUG_VIDEO || !debugHudEl) return;
+  const curTime = (video.currentTime || 0).toFixed(2);
+  const dur = (video.duration || 9.0).toFixed(2);
+  const tgtTime = (targetVideoTime || 0).toFixed(2);
+
+  if (debugSlideEl) debugSlideEl.textContent = `SLIDE: ${String(currentSlide + 1).padStart(2, '0')}`;
+  if (debugVideoEl) debugVideoEl.textContent = `VIDEO: ${curTime} / ${dur}`;
+  if (debugTargetEl) debugTargetEl.textContent = `TARGET: ${tgtTime}`;
+  if (debugStateEl) debugStateEl.textContent = `TRANSITION: ${isTransitioning ? 'ACTIVE' : 'IDLE'}`;
+  if (debugFpsEl) debugFpsEl.textContent = `FPS: ${currentFps}`;
+}
+
+/* ============================================================
+   11. INITIALIZATION & PRELOAD
+============================================================ */
+let loadPct = 0;
+const loadInt = setInterval(() => {
+  loadPct = Math.min(loadPct + Math.random() * 25, 90);
+  loaderFill.style.width = loadPct + '%';
+}, 70);
+
+function finishLoading() {
+  clearInterval(loadInt);
+  loaderFill.style.width = '100%';
+  setTimeout(() => {
+    loadEl.style.opacity = '0';
+    setTimeout(() => { loadEl.style.display = 'none'; }, 800);
+  }, 150);
+}
+
+let hasBooted = false;
+function boot() {
+  if (hasBooted) return;
+  hasBooted = true;
+
+  validateSlideVideoTimes();
+
+  currentVideoTime = 0.0;
+  targetVideoTime = slideVideoTimes[0];
+  requestedTime = 0.0;
+
+  try {
+    video.currentTime = 0;
+  } catch (e) {}
+
+  renderProjects();
+  initSideNav();
+  initParticles();
+  finishLoading();
+  updateNavIndicators();
+
+  if (DEBUG_VIDEO && debugHudEl) {
+    debugHudEl.style.display = 'block';
+  }
+
+  // Start single centralized animation loop
+  requestAnimationFrame(masterLoop);
+}
+
+// Wait until video metadata is ready
+video.addEventListener('loadedmetadata', () => {
+  boot();
+}, { once: true });
+
+// Preload video once (never reload during slide transitions)
+video.load();
+
+if (video.readyState >= 1) {
+  boot();
+}
+
+video.addEventListener('error', () => {
+  clearInterval(loadInt);
+  loadEl.innerHTML = `
+    <h3 style="color:#ff4444;letter-spacing:4px;">VIDEO NOT FOUND</h3>
+    <p style="color:#888;text-align:center;max-width:340px;line-height:1.8;margin-top:14px;font-size:0.85rem;">
+      Place <b style="color:#fff">abc.mp4</b> in the same folder as <b style="color:#fff">index.html</b>.
+    </p>`;
+}, { once: true });
+
+// Fallback timeout in case video loading event is delayed
+setTimeout(() => {
+  if (!hasBooted) {
+    boot();
+  }
+}, 3500);
+
+</script>
+</body>
+</html>

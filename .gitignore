@@ -1,0 +1,8 @@
+# Backup video files
+abc_original.mp4
+
+# Temporary files
+New Text Document.txt
+*.tmp
+.DS_Store
+Thumbs.db
